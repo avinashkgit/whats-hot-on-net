@@ -19,7 +19,7 @@ os.environ["SSL_CERT_FILE"] = certifi.where()
 # Validate API key
 # -------------------------------------------------------------------
 
-XAI_API_KEY = os.getenv("XAI_API_KEY")
+XAI_API_KEY = os.environ("XAI_API_KEY")
 if not XAI_API_KEY:
     raise RuntimeError("XAI_API_KEY not set in environment variables")
 
