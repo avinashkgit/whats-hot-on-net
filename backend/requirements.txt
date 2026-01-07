@@ -12,3 +12,5 @@ feedparser
 cloudinary
 psycopg2
 openai
+gnews
+tenacity

@@ -1,7 +1,7 @@
 from agents.topic_agent import TopicAgent
 from agents.article_agent import ArticleAgent
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
 
@@ -26,5 +26,5 @@ def test_article_agent(topic: str):
 
 
 if __name__ == "__main__":
-    topic = test_topic_agent()
-    # test_article_agent(topic)
+    # topic = test_topic_agent()
+    test_article_agent("EU moves toward stricter AI transparency rules")
