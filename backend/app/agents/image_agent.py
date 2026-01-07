@@ -1,4 +1,4 @@
-import requests, os
+import requests, os, time
 from io import BytesIO
 from PIL import Image
 import cloudinary
@@ -29,10 +29,39 @@ class ImageAgent:
         """
 
         response = requests.post(
-            HF_URL, headers=HF_HEADERS, json={"inputs": prompt}, timeout=120, verify=certifi.where()
+            HF_URL,
+            headers=HF_HEADERS,
+            json={"inputs": prompt},
+            timeout=120,
+            verify=certifi.where(),
         )
 
-        image = Image.open(BytesIO(response.content)).convert("RGB")
+        # 1️⃣ HTTP-level validation
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"HuggingFace HTTP {response.status_code}: {response.text}"
+            )
+
+        # 2️⃣ Content-Type check
+        content_type = response.headers.get("Content-Type", "")
+
+        if "application/json" in content_type:
+            data = response.json()
+
+            # Model warming up → wait & retry
+            if isinstance(data, dict) and "estimated_time" in data:
+                wait = int(data.get("estimated_time", 15))
+                time.sleep(wait + 2)
+                return self.run(topic)
+
+            # Any other JSON = error
+            raise RuntimeError(f"HuggingFace JSON error: {data}")
+
+        # 3️⃣ Safe image decode
+        try:
+            image = Image.open(BytesIO(response.content)).convert("RGB")
+        except Exception as e:
+            raise RuntimeError("Failed to decode image from HuggingFace") from e
 
         buffer = BytesIO()
         image.save(buffer, format="PNG")
