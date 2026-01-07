@@ -18,7 +18,7 @@ def run():
         topic=topic,
         title=article["title"],
         body=article["body"],
-        image_url="image_url"
+        image_url=image_url
     )
     db.close()
 
