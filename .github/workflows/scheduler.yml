@@ -34,5 +34,6 @@ jobs:
             CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
             CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
             OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
           python app/scheduler.py
