@@ -1,8 +1,8 @@
 from agents.topic_agent import TopicAgent
 from agents.article_agent import ArticleAgent
 from agents.image_agent import ImageAgent
-from db.database import SessionLocal
-from db.repository import save_article
+from app.db.database import SessionLocal
+from app.db.repository import save_article
 
 from dotenv import load_dotenv
 load_dotenv()

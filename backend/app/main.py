@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
-from db.database import SessionLocal
-from db.repository import get_articles
+from app.db.database import SessionLocal
+from app.db.repository import get_articles
 
 app = FastAPI()
 
