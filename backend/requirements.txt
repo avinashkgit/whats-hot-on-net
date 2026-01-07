@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+requests
+cloudinary
+pillow
+python-dotenv
+feedparser
+certifi
+feedparser
+cloudinary
+psycopg2

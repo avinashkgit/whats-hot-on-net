@@ -1,0 +1,13 @@
+# Python virtual environment (root)
+.venv/
+
+# Node dependencies (frontend)
+frontend/node_modules/
+# Environment variables
+.env
+backend/.env
+
+# Editor settings
+.vscode/
+
+__pycache__/
