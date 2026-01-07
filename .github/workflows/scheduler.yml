@@ -2,8 +2,8 @@ name: AI Article Scheduler
 
 on:
   schedule:
-    # Runs every 8 hours (UTC)
-    - cron: "0 0,8,16 * * *"
+    # Runs every 4 hours (UTC)
+    - cron: "0 */4 * * *" 
   workflow_dispatch:  # allows manual run
 
 jobs:
