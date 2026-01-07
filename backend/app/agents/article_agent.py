@@ -9,17 +9,21 @@ from openai import RateLimitError
 from constants import XAI_MODEL
 
 # -------------------------------------------------------------------
-# Environment & TLS fix (MANDATORY for Windows + RSS)
+# Environment & TLS fix (cross-platform safe)
 # -------------------------------------------------------------------
 
 load_dotenv()
-os.environ["SSL_CERT_FILE"] = certifi.where()
+
+cert_path = certifi.where()
+os.environ["SSL_CERT_FILE"] = cert_path
+os.environ["REQUESTS_CA_BUNDLE"] = cert_path
+os.environ["CURL_CA_BUNDLE"] = cert_path
 
 # -------------------------------------------------------------------
 # Validate API key
 # -------------------------------------------------------------------
 
-XAI_API_KEY = os.environ["XAI_API_KEY"]
+XAI_API_KEY = os.getenv("XAI_API_KEY")
 if not XAI_API_KEY:
     raise RuntimeError("XAI_API_KEY not set in environment variables")
 
