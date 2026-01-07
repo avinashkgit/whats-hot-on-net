@@ -1,18 +1,27 @@
-# import requests
-
-# r = requests.get("https://api-inference.huggingface.co")
-# print(r.status_code)
+from agents.topic_agent import TopicAgent
+from agents.article_agent import ArticleAgent
 
 
+def test_topic_agent():
+    print("=== Testing TopicAgent ===")
+    topic = TopicAgent().run()
+    print("Topic:", topic)
+    print()
+    return topic
 
-import psycopg2
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
+def test_article_agent(topic: str):
+    print("=== Testing ArticleAgent ===")
+    article = ArticleAgent().run(topic)
 
-print("Connecting to:", os.getenv("DATABASE_URL"))
+    print("Title:", article["title"])
+    print()
+    print("Body (first 500 chars):")
+    print(article["body"][:500])
+    print()
+    print("Body length:", len(article["body"]))
 
-conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-print("Connected successfully!")
-conn.close()
+
+if __name__ == "__main__":
+    topic = test_topic_agent()
+    test_article_agent(topic)

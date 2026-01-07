@@ -1,47 +1,56 @@
-import requests
 import os
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
+
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 
 class ArticleAgent:
     def run(self, topic: str):
-        prompt = f"""
-You are a professional news researcher and journalist.
+        """
+        Generates a professional, fact-based news article body
+        for the given topic. Returns ONLY article content.
+        """
 
-Research and write a comprehensive, fact-based news article about: {topic}
-
-Tone: neutral, objective, and informative
-Style: professional newsroom writing
-Focus on:
-- Background and context
-- Key developments and facts
-- Why the topic matters
-- Possible implications or next steps (without speculation)
-
-Guidelines:
-- Avoid opinions, hype, or promotional language
-- Use clear, simple language for a global audience
-- Ensure logical flow and clarity
-- Do not use markdown, emojis, or bullet symbols
-
-Length: approximately 800 words
-"""
-
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}],
-            },
+        system_message = (
+            "You are a professional international news journalist. "
+            "You write neutral, fact-based articles for a global audience. "
+            "You never include headings, titles, prompts, or instructions "
+            "in your output."
         )
-        print(response.json())
 
-        content = response.json()["choices"][0]["message"]["content"]
+        user_message = (
+            f"Write a comprehensive news article about the following topic:\n\n"
+            f"{topic}\n\n"
+            "The article should provide background, key developments, "
+            "and explain why the topic matters. "
+            "Maintain a neutral and objective tone throughout. "
+            "Use clear, professional language suitable for a global readership. "
+            "Write in continuous paragraphs without bullet points or formatting. "
+            "Do not include a title, summary, or conclusion label."
+        )
 
-        return {"title": topic, "body": content}
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=0.35,
+                max_tokens=1200,
+            )
+        except Exception as e:
+            raise RuntimeError(f"OpenAI Article generation failed: {e}")
+
+        content = response.choices[0].message.content.strip()
+
+        if not content:
+            raise RuntimeError("OpenAI returned empty article content")
+
+        return {
+            "title": topic,
+            "body": content,
+        }

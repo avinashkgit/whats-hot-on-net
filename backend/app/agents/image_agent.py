@@ -23,11 +23,11 @@ cloudinary.config(
 class ImageAgent:
     def run(self, topic: str):
         prompt = f"""
-Realistic editorial news photo about "{topic}",
-natural lighting, documentary photography style,
-true-to-life colors, candid composition,
-high detail, no text, no watermark.
-"""
+            Realistic editorial news photo about "{topic}",
+            natural lighting, documentary photography style,
+            true-to-life colors, candid composition,
+            high detail, no text, no watermark.
+        """
 
         response = requests.post(
             HF_URL,

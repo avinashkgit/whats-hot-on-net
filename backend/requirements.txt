@@ -11,3 +11,4 @@ certifi
 feedparser
 cloudinary
 psycopg2
+openai
