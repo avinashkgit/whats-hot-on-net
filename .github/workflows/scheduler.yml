@@ -27,11 +27,12 @@ jobs:
       - name: Run scheduler
         working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            PYTHONPATH: ${{ github.workspace }}/backend
+            DATABASE_URL: ${{ secrets.DATABASE_URL }}
+            HF_TOKEN: ${{ secrets.HF_TOKEN }}
+            CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python app/scheduler.py
