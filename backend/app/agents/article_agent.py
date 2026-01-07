@@ -106,7 +106,7 @@ Summary: {n.get('description')}
         stop=stop_after_attempt(5),
     )
     def _grok_write(self, prompt: str):
-        return client.responses.create(
+        return client.chat.completions.create(
             model=XAI_MODEL,
             input=prompt,
             temperature=0.3,
