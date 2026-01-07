@@ -9,7 +9,7 @@ import certifi
 
 load_dotenv()
 
-HF_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+HF_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
 HF_HEADERS = {"Authorization": f"Bearer {os.environ['HF_TOKEN']}"}
 
 cloudinary.config(
