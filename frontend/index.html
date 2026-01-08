@@ -1,13 +1,119 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- =========================
+         BASIC META
+    ========================== -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+
+    <title>
+      Global News Today | Breaking News, World, Tech, Business & Science
+    </title>
+
+    <!-- =========================
+         PRIMARY SEO META
+    ========================== -->
+    <meta
+      name="description"
+      content="Global News Today brings you breaking news, in-depth analysis, and latest updates from around the world covering politics, technology, business, science, health, and more."
+    />
+    <meta
+      name="keywords"
+      content="global news, breaking news, world news, technology news, business news, science news, politics news, latest headlines"
+    />
+    <meta name="author" content="Global News Today Editorial Team" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- =========================
+         CANONICAL
+    ========================== -->
+    <link rel="canonical" href="https://www.hotonnet.com/" />
+
+    <!-- =========================
+         OPEN GRAPH (FACEBOOK / LINKEDIN)
+    ========================== -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Global News Today | Trusted Global Journalism"
+    />
+    <meta
+      property="og:description"
+      content="Breaking global news and trusted journalism across politics, technology, business, and science."
+    />
+    <meta property="og:url" content="https://www.hotonnet.com/" />
+    <meta property="og:image" content="https://www.hotonnet.com/og-image.jpg" />
+    <meta property="og:site_name" content="Global News Today" />
+
+    <!-- =========================
+         TWITTER CARDS
+    ========================== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Global News Today | Breaking News & Analysis"
+    />
+    <meta
+      name="twitter:description"
+      content="Stay updated with breaking news and expert analysis from around the globe."
+    />
+    <meta
+      name="twitter:image"
+      content="https://www.hotonnet.com/og-image.jpg"
+    />
+
+    <!-- =========================
+         FAVICONS
+    ========================== -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- =========================
+         PERFORMANCE & UX
+    ========================== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- =========================
+         STRUCTURED DATA (NEWS ORGANIZATION)
+    ========================== -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsMediaOrganization",
+        "name": "Global News Today",
+        "url": "https://www.hotonnet.com",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.hotonnet.com/logo.png"
+        },
+        "sameAs": []
+      }
+    </script>
   </head>
+
   <body>
+    <!-- =========================
+         NOSCRIPT FALLBACK
+    ========================== -->
+    <noscript>
+      <strong>
+        Global News Today requires JavaScript to deliver real-time news updates.
+        Please enable JavaScript to continue.
+      </strong>
+    </noscript>
+
+    <!-- =========================
+         APP ROOT
+    ========================== -->
     <div id="root"></div>
+
+    <!-- =========================
+         MAIN SCRIPT
+    ========================== -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

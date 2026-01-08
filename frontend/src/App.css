@@ -2,14 +2,16 @@
    Animations
 =========================== */
 
+
+
 @keyframes incoming-reverse {
   from {
     opacity: 0;
-    transform: translate(-50%, -40px) scale(0.96);
+    transform: translate(-50%, -160px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translate(-50%, -20%) scale(1);
   }
 }
 
@@ -30,15 +32,26 @@
   width: 100vw;
   height: 100vh;
   position: fixed;
-  inset: 0;
-  z-index: 0;
+  left: 0;
+  right: 0;
+
+  top: 10.5vh;
+  bottom: 10vh;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
   background: linear-gradient(135deg, #232526 0%, #414345 100%);
+  transition: top 0.4s ease, bottom 0.4s ease;
 }
+
+
+.app-root.expanded-mode .article-stack-container {
+  top: 0;
+  bottom: 0;
+}
+
 
 .article-stack {
   width: 900px;
@@ -61,10 +74,9 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-
   width: 90vw;
   max-width: 900px;
-  max-height: 85vh;
+  max-height: 68vh;
 
   display: flex;
   flex-direction: column;
@@ -146,7 +158,7 @@
 
   .article-image {
     width: 100%;
-    height: 50vh;
+    height: 40vh;
     object-fit: cover;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
@@ -171,14 +183,14 @@
 
     h2 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: clamp(.4rem, 2vw + .6rem, 1.5rem);
       font-weight: 700;
       color: #232526;
     }
 
     p {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: clamp(.4rem, 2vw + .4rem, 1.1rem);
       color: #414345;
     }
   }
@@ -252,3 +264,54 @@
     }
   }
 }
+
+/* ===========================
+   App Header & Footer
+=========================== */
+
+.app-header,
+.app-footer {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  height: 56px;
+  z-index: 200;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(35, 37, 38, 0);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.app-header {
+  top: 0;
+  font-size: clamp(.4rem, 2vw + .2rem, 0.8rem);
+  background: rgba(211, 228, 236, 0);
+}
+
+.app-footer {
+  bottom: 0;
+  font-size: 0.9rem;
+}
+
+/* ===========================
+   Main Wrapper
+=========================== */
+
+.app-main {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.app-root.expanded-mode .app-header,
+.app-root.expanded-mode .app-footer {
+  opacity: 0;
+  pointer-events: none;
+}
+
