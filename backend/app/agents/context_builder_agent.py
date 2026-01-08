@@ -14,3 +14,10 @@ CONTENT:
         context += block
 
     return context.strip()
+
+def build_fallback_context(links):
+    lines = []
+    for item in links:
+        lines.append(f"- {item['title']}")
+    return "\n".join(lines)
+
