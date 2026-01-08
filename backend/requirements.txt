@@ -14,3 +14,5 @@ psycopg2
 openai
 gnews
 tenacity
+newspaper3k
+lxml_html_clean

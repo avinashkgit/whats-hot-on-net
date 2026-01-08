@@ -1,30 +1,78 @@
 from agents.topic_agent import TopicAgent
-from agents.article_agent import ArticleAgent
-from dotenv import load_dotenv
-
-load_dotenv()
+from agents.search_agent import search_news
+from agents.extractor_pool import extract_articles_parallel
+from agents.context_builder_agent import build_context
+from agents.writer_agent import WriterAgent
+from agents.image_agent import ImageAgent
 
 
 def test_topic_agent():
-    print("=== Testing TopicAgent ===")
+    print("\n=== Testing TopicAgent ===")
     topic = TopicAgent().run()
     print("Topic:", topic)
-    print()
-    return topic
+    assert isinstance(topic, str) and len(topic) > 5
 
 
-def test_article_agent(topic: str):
-    print("=== Testing ArticleAgent ===")
-    article = ArticleAgent().run(topic)
+def test_search_agent(topic):
+    print("\n=== Testing SearchAgent ===")
+    results = search_news(topic, limit=5)
+    print("Results found:", len(results))
+    assert isinstance(results, list)
+    assert len(results) > 0
+    assert "link" in results[0]
+    return results
 
-    print("Title:", article["title"])
-    print()
-    print("Body (first 500 chars):")
-    print(article["body"][:500])
-    print()
-    print("Body length:", len(article["body"]))
+
+def test_extractor_agent(links):
+    print("\n=== Testing Parallel Extractor ===")
+    articles = extract_articles_parallel(links, max_workers=5)
+    print("Articles extracted:", len(articles))
+    assert isinstance(articles, list)
+    assert len(articles) > 0
+    assert "text" in articles[0]
+    return articles
+
+
+def test_context_builder(articles):
+    print("\n=== Testing Context Builder ===")
+    context = build_context(articles)
+    print("Context length:", len(context))
+    assert isinstance(context, str)
+    assert len(context) > 500
+    return context
+
+
+def test_writer_agent(topic, context):
+    print("\n=== Testing WriterAgent ===")
+    article = WriterAgent().run(topic, context)
+    print("Article length:", len(article["body"]))
+    assert "body" in article
+    assert len(article["body"]) > 800
+    return article
+
+
+def test_image_agent(topic):
+    print("\n=== Testing ImageAgent ===")
+    image_url = ImageAgent().run(topic)
+    print("Image URL:", image_url)
+    assert isinstance(image_url, str)
+    assert image_url.startswith("http")
+
+
+def run_all_tests():
+    print("\n==============================")
+    print(" RUNNING AGENT PIPELINE TESTS ")
+    print("==============================")
+
+    topic = TopicAgent().run()
+
+    links = test_search_agent(topic)
+    articles = test_extractor_agent(links)
+    context = test_context_builder(articles)
+    article = test_writer_agent(topic, context)
+
+    print("\n✅ ALL AGENT TESTS PASSED SUCCESSFULLY\n")
 
 
 if __name__ == "__main__":
-    # topic = test_topic_agent()
-    test_article_agent("EU moves toward stricter AI transparency rules")
+    run_all_tests()
