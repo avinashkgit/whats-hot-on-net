@@ -5,6 +5,8 @@ BLOCKED_DOMAINS = (
     "nytimes.com",
     "wsj.com",
     "bloomberg.com",
+    "axios.com",
+    "forbes.com"
 )
 
 
