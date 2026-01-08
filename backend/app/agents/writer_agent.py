@@ -1,3 +1,12 @@
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+from constants import GPT_MODEL
+
+load_dotenv()
+
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
 class WriterAgent:
     def run(self, topic: str, context: str):
         system_message = (
