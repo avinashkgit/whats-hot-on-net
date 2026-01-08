@@ -32,7 +32,7 @@ Rules:
 - Neutral tone
 - No bullet points
 - No headings
-- Continuous paragraphs
+- Multiple paragraphs
 - No markdown
 - No explanations
 - Article title should be attractive and crisp
