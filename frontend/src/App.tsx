@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 
 /* =========================
-   Types (API structure)
+   Types
 ========================= */
 type ApiArticle = {
   id: number;
@@ -40,6 +40,7 @@ function App() {
      State
   ========================= */
   const [articles, setArticles] = useState<UiArticle[]>([]);
+  const [loading, setLoading] = useState(true);
   const [collapsingId, setCollapsingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [topIndex, setTopIndex] = useState(0);
@@ -48,12 +49,14 @@ function App() {
   const animationTimeout = useRef<number | null>(null);
 
   /* =========================
-     Fetch articles from API
+     Fetch articles
   ========================= */
   useEffect(() => {
     async function fetchArticles() {
       try {
-        const res = await fetch("https://whats-hot-on-net.onrender.com/articles");
+        const res = await fetch(
+          "https://whats-hot-on-net.onrender.com/articles"
+        );
         const data: ApiArticle[] = await res.json();
 
         const mapped: UiArticle[] = data.map((a) => ({
@@ -67,6 +70,8 @@ function App() {
         setArticles(mapped);
       } catch (err) {
         console.error("Failed to load articles", err);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -83,7 +88,8 @@ function App() {
       return;
     }
 
-    if (animating) return;
+    if (animating || loading) return;
+
     if (e.deltaY > 0 && topIndex < articles.length - 1) {
       setAnimating("up");
       animationTimeout.current = window.setTimeout(() => {
@@ -112,77 +118,81 @@ function App() {
   }, [expandedId, collapsingId]);
 
   /* =========================
-     Loading guard
-  ========================= */
-  if (articles.length === 0) {
-    return <div className="loading">Loading articles…</div>;
-  }
-
-  /* =========================
      Render
   ========================= */
   return (
     <div className="article-stack-container">
       <div className="article-stack" onWheel={handleWheel}>
-        {(expandedId !== null || collapsingId !== null) && (
+        {/* Expanded / Collapsing */}
+        {(expandedId !== null || collapsingId !== null) && !loading && (
           <div
             className={`article-card expanded${
               collapsingId ? " collapsing" : ""
             }`}
-            onWheel={(e) => e.stopPropagation()}
             style={{ zIndex: 101 }}
+            onWheel={(e) => e.stopPropagation()}
             onClick={() => {
               setCollapsingId(expandedId);
               setExpandedId(null);
               setTimeout(() => setCollapsingId(null), 600);
             }}
           >
-            <img
-              src={
-                articles.find((a) => a.id === (expandedId ?? collapsingId))
-                  ?.image
-              }
-              alt={
-                articles.find((a) => a.id === (expandedId ?? collapsingId))
-                  ?.header
-              }
-              className="article-image"
-            />
-            <div className="article-content">
-              <h2>
-                {
-                  articles.find((a) => a.id === (expandedId ?? collapsingId))
-                    ?.header
-                }
-              </h2>
-              <p>
-                {
-                  articles.find((a) => a.id === (expandedId ?? collapsingId))
-                    ?.body
-                }
-              </p>
-              <span className="article-date">
-                {formatDate(
-                  articles.find((a) => a.id === (expandedId ?? collapsingId))
-                    ?.published || ""
-                )}
-              </span>
-            </div>
+            {(() => {
+              const article = articles.find(
+                (a) => a.id === (expandedId ?? collapsingId)
+              );
+              if (!article) return null;
+
+              return (
+                <>
+                  <img
+                    src={article.image}
+                    alt={article.header}
+                    className="article-image"
+                  />
+                  <div className="article-content">
+                    <h2>{article.header}</h2>
+                    <p>{article.body}</p>
+                    <span className="article-date">
+                      {formatDate(article.published)}
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
 
-        {incoming !== null && animating === "down" && (
+        {/* Loading placeholders */}
+        {loading &&
+          Array.from({ length: 5 }).map((_, i) => {
+            const offset = i * STACK_GAP;
+            return (
+              <div
+                key={`placeholder-${i}`}
+                className="article-card placeholder"
+                style={{
+                  zIndex: 50 - i,
+                  top: offset,
+                  left: `calc(50% + ${offset}px)`,
+                  transform: "translate(-50%, 0)",
+                }}
+              >
+                <div className="image-skeleton" />
+                <div className="content-skeleton">
+                  <div className="line short" />
+                  <div className="line" />
+                  <div className="line" />
+                </div>
+              </div>
+            );
+          })}
+
+        {/* Incoming (scroll down) */}
+        {!loading && incoming !== null && animating === "down" && (
           <div
-            key={articles[incoming].id}
             className="article-card incoming"
-            style={{
-              zIndex: 200,
-              top: 0,
-              left: `calc(50% + 0px)`,
-              transform: "translate(-50%, -40px) scale(0.96)",
-              opacity: 0,
-              transition: "all 0.35s cubic-bezier(.4,2,.3,1)",
-            }}
+            style={{ zIndex: 200 }}
             onClick={() => setExpandedId(articles[incoming].id)}
           >
             <img
@@ -200,47 +210,48 @@ function App() {
           </div>
         )}
 
-        {articles.slice(topIndex, topIndex + 5).map((article, i) => {
-          const idx = topIndex + i;
-          const isExpanded = expandedId === article.id;
-          const offset = i * STACK_GAP;
+        {/* Normal stack */}
+        {!loading &&
+          articles.slice(topIndex, topIndex + 5).map((article, i) => {
+            const idx = topIndex + i;
+            const offset = i * STACK_GAP;
+            const isExpanded = expandedId === article.id;
 
-          const style: React.CSSProperties = {
-            zIndex: isExpanded ? 100 : articles.length - idx,
-            top: offset,
-            left: `calc(50% + ${offset}px)`,
-            transform: "translate(-50%, 0)",
-            opacity: 1,
-            transition: "all 0.35s cubic-bezier(.4,2,.3,1)",
-          };
+            const style: React.CSSProperties = {
+              zIndex: isExpanded ? 100 : articles.length - idx,
+              top: offset,
+              left: `calc(50% + ${offset}px)`,
+              transform: "translate(-50%, 0)",
+              transition: "all 0.35s cubic-bezier(.4,2,.3,1)",
+            };
 
-          if (i === 0 && animating === "up" && expandedId === null) {
-            style.opacity = 0;
-            style.transform = "translate(-50%, -40px) scale(0.96)";
-          }
+            if (i === 0 && animating === "up" && expandedId === null) {
+              style.opacity = 0;
+              style.transform = "translate(-50%, -40px) scale(0.96)";
+            }
 
-          return (
-            <div
-              key={article.id}
-              className={`article-card${isExpanded ? " expanded" : ""}`}
-              style={style}
-              onClick={() => setExpandedId(isExpanded ? null : article.id)}
-            >
-              <img
-                src={article.image}
-                alt={article.header}
-                className="article-image"
-              />
-              <div className="article-content">
-                <h2>{article.header}</h2>
-                <p>{article.body}</p>
-                <span className="article-date">
-                  {formatDate(article.published)}
-                </span>
+            return (
+              <div
+                key={article.id}
+                className={`article-card${isExpanded ? " expanded" : ""}`}
+                style={style}
+                onClick={() => setExpandedId(isExpanded ? null : article.id)}
+              >
+                <img
+                  src={article.image}
+                  alt={article.header}
+                  className="article-image"
+                />
+                <div className="article-content">
+                  <h2>{article.header}</h2>
+                  <p>{article.body}</p>
+                  <span className="article-date">
+                    {formatDate(article.published)}
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
     </div>
   );

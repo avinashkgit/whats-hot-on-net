@@ -8,7 +8,7 @@ def save_article(db: Session, topic, title, body, image_url):
         title=title,
         body=body,
         image_url=image_url,
-        published_at=datetime.utcnow()
+        published_at=datetime.now(datetime.timezone.utc)
     )
     db.add(article)
     db.commit()

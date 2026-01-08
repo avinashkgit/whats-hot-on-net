@@ -5,8 +5,8 @@ class Article(Base):
     __tablename__ = "articles"
 
     id = Column(Integer, primary_key=True)
-    topic = Column(Text, nullable=False)
-    title = Column(Text, nullable=False, unique=True)
+    topic = Column(Text, nullable=False, unique=True)
+    title = Column(Text, nullable=False)
     body = Column(Text, nullable=False)
     image_url = Column(Text)
     published_at = Column(TIMESTAMP, nullable=False)

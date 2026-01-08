@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from openai import OpenAI
 from constants import GPT_MODEL
@@ -13,15 +14,16 @@ class WriterAgent:
         system_message = (
             "You are a professional international news journalist. "
             "You must write ONLY using the provided context. "
-            "Do not speculate or add external information."
+            "Do not speculate or add external information. "
+            "You must respond ONLY with valid JSON."
         )
 
         user_message = f"""
-Write a comprehensive news article about:
+Write a comprehensive news article about the topic below
+using ONLY the provided context.
 
+TOPIC:
 {topic}
-
-Use ONLY the context below.
 
 CONTEXT:
 {context}
@@ -31,6 +33,16 @@ Rules:
 - No bullet points
 - No headings
 - Continuous paragraphs
+- No markdown
+- No explanations
+- Article title should be attractive and crisp
+- Keep the article engaging and informative
+- Return ONLY valid JSON in this exact format:
+
+{{
+  "title": "updated article title here",
+  "body": "full article text here"
+}}
 """
 
         response = client.chat.completions.create(
@@ -43,8 +55,14 @@ Rules:
             max_tokens=1200,
         )
 
-        body = response.choices[0].message.content.strip()
-        if not body:
-            raise RuntimeError("Empty article")
+        raw_output = response.choices[0].message.content.strip()
 
-        return {"title": topic, "body": body}
+        try:
+            data = json.loads(raw_output)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Invalid JSON returned:\n{raw_output}") from e
+
+        if not data.get("body"):
+            raise RuntimeError("Empty article body")
+
+        return data
