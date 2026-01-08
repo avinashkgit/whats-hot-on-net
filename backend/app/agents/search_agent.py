@@ -1,23 +1,9 @@
 import feedparser
 from urllib.parse import quote_plus
 
+from .google_news_decoder import decode_google_news_url
+
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search"
-
-
-def extract_real_link(entry):
-    """
-    Google News RSS puts the real publisher URL in entry.links
-    """
-    if hasattr(entry, "links"):
-        for link in entry.links:
-            if link.get("rel") == "alternate" and link.get("type") == "text/html":
-                return link.get("href")
-
-    # Fallbacks
-    if hasattr(entry, "source") and "href" in entry.source:
-        return entry.source["href"]
-
-    return entry.link  # worst-case fallback
 
 
 def search_news(topic, limit=5):
@@ -28,12 +14,18 @@ def search_news(topic, limit=5):
 
     results = []
     for entry in feed.entries:
-        real_link = extract_real_link(entry)
+        raw_link = entry.link
+        decoded_link = decode_google_news_url(raw_link)
 
-        results.append({
-            "title": entry.title,
-            "link": real_link,
-        })
+        final_link = decoded_link or raw_link
+
+        results.append(
+            {
+                "title": entry.title,
+                "link": final_link,
+                "summary": getattr(entry, "summary", ""),
+            }
+        )
 
         if len(results) >= limit:
             break
