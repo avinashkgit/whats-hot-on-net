@@ -32,11 +32,11 @@ Rules:
 - Neutral tone
 - No bullet points
 - No headings
-- Multiple paragraphs
 - No markdown
 - No explanations
 - Article title should be attractive and crisp
 - Keep the article engaging and informative
+- Must have Multiple paragraphs
 - Return ONLY valid JSON in this exact format:
 
 {{
