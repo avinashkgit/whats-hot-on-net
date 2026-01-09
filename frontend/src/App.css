@@ -289,7 +289,7 @@
 }
 
 .app-header {
-  height: 56px;
+  height: 10vh;
   top: 0;
   font-size: clamp(.4rem, 2vw + .2rem, 0.6rem);
   background: rgba(211, 228, 236, 0);
