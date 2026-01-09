@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
+import logo from "./assets/favicon.svg";
 
 /* =========================
    Types
@@ -128,7 +129,7 @@ export default function App() {
       {/* ================= HEADER ================= */}
       <header className="app-header">
         <img
-          src="./assets/favicon.svg"
+          src={logo}
           alt="Hot on Net Logo"
           className="app-logo"
         />
