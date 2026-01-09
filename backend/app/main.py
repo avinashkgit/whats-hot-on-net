@@ -13,7 +13,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",          # local React dev
-        "https://whats-hot-on-net.onrender.com",  # deployed frontend (if any)
+        "https://hotonnet.com",  # deployed frontend (if any)
     ],
     allow_credentials=True,
     allow_methods=["*"],
