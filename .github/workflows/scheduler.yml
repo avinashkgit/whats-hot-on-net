@@ -1,4 +1,5 @@
-name: AI Article Scheduler
+# name with icon
+name: 🤖 AI Article Scheduler
 
 on:
   schedule:
