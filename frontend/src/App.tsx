@@ -128,7 +128,7 @@ export default function App() {
       {/* ================= HEADER ================= */}
       <header className="app-header">
         <img
-          src="../public/icons/favicon.svg"
+          src="./assets/favicon.svg"
           alt="Hot on Net Logo"
           className="app-logo"
         />
