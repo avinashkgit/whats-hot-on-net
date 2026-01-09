@@ -3,6 +3,7 @@
 
 # Node dependencies (frontend)
 frontend/node_modules/
+frontend/dist/
 # Environment variables
 .env
 backend/.env
