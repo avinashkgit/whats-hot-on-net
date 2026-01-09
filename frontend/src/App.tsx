@@ -213,11 +213,14 @@ export default function App() {
 
                   return (
                     <>
+                      <div className="image-container">
+                      <div className="image-gradient"></div>
                       <img
                         src={article.image}
                         alt={article.header}
                         className="article-image"
                       />
+                    </div>
                       <div className="article-content">
                         <h2>{article.header}</h2>
                         <p>{article.body}</p>
@@ -294,11 +297,14 @@ export default function App() {
                     }}
                     onClick={() => setExpandedId(article.id)}
                   >
-                    <img
-                      src={article.image}
-                      alt={article.header}
-                      className="article-image"
-                    />
+                    <div className="image-container">
+                      <div className="image-gradient"></div>
+                      <img
+                        src={article.image}
+                        alt={article.header}
+                        className="article-image"
+                      />
+                    </div>
                     <div className="article-content">
                       <h2>{article.header}</h2>
                       <p>{article.body}</p>
