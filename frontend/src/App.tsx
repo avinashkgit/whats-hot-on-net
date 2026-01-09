@@ -127,7 +127,12 @@ export default function App() {
     <div className={`app-root ${isExpanded ? "expanded-mode" : ""}`}>
       {/* ================= HEADER ================= */}
       <header className="app-header">
-        <h1>What’s Hot on Net</h1>
+        <img
+          src="../public/icons/favicon.svg"
+          alt="Hot on Net Logo"
+          className="app-logo"
+        />
+        <h1>Hot on Net</h1>
       </header>
 
       {/* ================= MAIN ================= */}
@@ -270,7 +275,7 @@ export default function App() {
       </main>
 
       {/* ================= FOOTER ================= */}
-      <footer className="app-footer">© 2026 What’s Hot on Net</footer>
+      <footer className="app-footer">© 2026 hotonnet.com</footer>
     </div>
   );
 }

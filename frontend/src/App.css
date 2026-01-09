@@ -274,7 +274,7 @@
   position: fixed;
   left: 0;
   width: 100%;
-  height: 56px;
+   height: 32px;
   z-index: 200;
 
   display: flex;
@@ -289,14 +289,15 @@
 }
 
 .app-header {
+  height: 56px;
   top: 0;
-  font-size: clamp(.4rem, 2vw + .2rem, 0.8rem);
+  font-size: clamp(.4rem, 2vw + .2rem, 0.6rem);
   background: rgba(211, 228, 236, 0);
 }
 
 .app-footer {
   bottom: 0;
-  font-size: 0.9rem;
+  font-size: 0.6rem;
 }
 
 /* ===========================
@@ -313,5 +314,10 @@
 .app-root.expanded-mode .app-footer {
   opacity: 0;
   pointer-events: none;
+}
+
+.app-logo{
+  height: 48px;
+  margin-right: 12px;
 }
 
