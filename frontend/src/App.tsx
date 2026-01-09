@@ -35,6 +35,7 @@ function formatDate(dateStr: string) {
 }
 
 const STACK_GAP = 16;
+const SWIPE_THRESHOLD = 50;
 
 export default function App() {
   /* =========================
@@ -42,12 +43,14 @@ export default function App() {
   ========================= */
   const [articles, setArticles] = useState<UiArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [collapsingId, setCollapsingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [collapsingId, setCollapsingId] = useState<number | null>(null);
   const [topIndex, setTopIndex] = useState(0);
   const [animating, setAnimating] = useState<"up" | "down" | false>(false);
   const [incoming, setIncoming] = useState<number | null>(null);
-  const animationTimeout = useRef<number | null>(null);
+
+  const touchStartY = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
 
   /* =========================
      Fetch Articles
@@ -80,74 +83,122 @@ export default function App() {
   }, []);
 
   /* =========================
-     Wheel Handler (UNCHANGED)
+     Wheel (Desktop)
   ========================= */
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (expandedId !== null || collapsingId !== null) {
       e.preventDefault();
-      e.stopPropagation();
       return;
     }
-
     if (animating || loading) return;
 
     if (e.deltaY > 0 && topIndex < articles.length - 1) {
       setAnimating("up");
-      animationTimeout.current = window.setTimeout(() => {
-        setTopIndex((idx) => Math.min(idx + 1, articles.length - 1));
+      setTimeout(() => {
+        setTopIndex((i) => Math.min(i + 1, articles.length - 1));
         setAnimating(false);
-      }, 350);
-    } else if (e.deltaY < 0 && topIndex > 0) {
-      setAnimating("down");
-      setIncoming(topIndex - 1);
-      animationTimeout.current = window.setTimeout(() => {
-        setTopIndex((idx) => Math.max(idx - 1, 0));
-        setAnimating(false);
-        setIncoming(null);
       }, 350);
     }
+
+    if (e.deltaY < 0 && topIndex > 0) {
+      setAnimating("down");
+      setIncoming(topIndex - 1);
+      setTimeout(() => {
+        setTopIndex((i) => Math.max(i - 1, 0));
+        setIncoming(null);
+        setAnimating(false);
+      }, 350);
+    }
+  };
+
+  /* =========================
+     Touch (Mobile)
+  ========================= */
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    if (
+      touchStartY.current === null ||
+      touchEndY.current === null ||
+      animating ||
+      loading ||
+      expandedId !== null ||
+      collapsingId !== null
+    )
+      return;
+
+    const delta = touchStartY.current - touchEndY.current;
+
+    if (delta > SWIPE_THRESHOLD && topIndex < articles.length - 1) {
+      setAnimating("up");
+      setTimeout(() => {
+        setTopIndex((i) => Math.min(i + 1, articles.length - 1));
+        setAnimating(false);
+      }, 350);
+    }
+
+    if (delta < -SWIPE_THRESHOLD && topIndex > 0) {
+      setAnimating("down");
+      setIncoming(topIndex - 1);
+      setTimeout(() => {
+        setTopIndex((i) => Math.max(i - 1, 0));
+        setIncoming(null);
+        setAnimating(false);
+      }, 350);
+    }
+
+    touchStartY.current = null;
+    touchEndY.current = null;
   };
 
   /* =========================
      Scroll Lock
   ========================= */
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow =
+      expandedId !== null || collapsingId !== null ? "hidden" : "auto";
+
     return () => {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = "auto";
     };
   }, [expandedId, collapsingId]);
 
   /* =========================
      Render
   ========================= */
-
   const isExpanded = expandedId !== null || collapsingId !== null;
 
   return (
     <div className={`app-root ${isExpanded ? "expanded-mode" : ""}`}>
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <header className="app-header">
-        <img
-          src={logo}
-          alt="Hot on Net Logo"
-          className="app-logo"
-        />
+        <img src={logo} alt="Hot on Net Logo" className="app-logo" />
         <h1>Hot on Net</h1>
       </header>
 
-      {/* ================= MAIN ================= */}
+      {/* MAIN */}
       <main className="app-main">
         <div className="article-stack-container">
-          <div className="article-stack" onWheel={handleWheel}>
-            {/* Expanded / Collapsing */}
+          <div
+            className="article-stack"
+            onWheel={handleWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Expanded */}
             {(expandedId !== null || collapsingId !== null) && !loading && (
               <div
                 className={`article-card expanded${
                   collapsingId ? " collapsing" : ""
                 }`}
                 style={{ zIndex: 101 }}
-                onWheel={(e) => e.stopPropagation()}
                 onClick={() => {
                   setCollapsingId(expandedId);
                   setExpandedId(null);
@@ -180,10 +231,11 @@ export default function App() {
               </div>
             )}
 
-            {/* Loading placeholders */}
+            {/* 🔄 Loading placeholders */}
             {loading &&
               Array.from({ length: 5 }).map((_, i) => {
                 const offset = i * STACK_GAP;
+
                 return (
                   <div
                     key={`placeholder-${i}`}
@@ -205,13 +257,9 @@ export default function App() {
                 );
               })}
 
-            {/* Incoming (scroll down) */}
+            {/* 🔥 Incoming Card */}
             {!loading && incoming !== null && animating === "down" && (
-              <div
-                className="article-card incoming"
-                style={{ zIndex: 200 }}
-                onClick={() => setExpandedId(articles[incoming].id)}
-              >
+              <div className="article-card incoming" style={{ zIndex: 200 }}>
                 <img
                   src={articles[incoming].image}
                   alt={articles[incoming].header}
@@ -227,34 +275,24 @@ export default function App() {
               </div>
             )}
 
-            {/* Normal stack */}
+            {/* Stack */}
             {!loading &&
               articles.slice(topIndex, topIndex + 5).map((article, i) => {
                 const idx = topIndex + i;
                 const offset = i * STACK_GAP;
-                const isExpanded = expandedId === article.id;
-
-                const style: React.CSSProperties = {
-                  zIndex: isExpanded ? 100 : articles.length - idx,
-                  top: offset,
-                  left: `calc(50% + ${offset}px)`,
-                  transform: "translate(-50%, 0)",
-                  transition: "all 0.35s cubic-bezier(.4,2,.3,1)",
-                };
-
-                if (i === 0 && animating === "up" && expandedId === null) {
-                  style.opacity = 0;
-                  style.transform = "translate(-50%, -40px) scale(0.96)";
-                }
 
                 return (
                   <div
                     key={article.id}
-                    className={`article-card${isExpanded ? " expanded" : ""}`}
-                    style={style}
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : article.id)
-                    }
+                    className="article-card"
+                    style={{
+                      zIndex: articles.length - idx,
+                      top: offset,
+                      left: `calc(50% + ${offset}px)`,
+                      transform: "translate(-50%, 0)",
+                      transition: "all 0.35s cubic-bezier(.4,2,.3,1)",
+                    }}
+                    onClick={() => setExpandedId(article.id)}
                   >
                     <img
                       src={article.image}
@@ -275,7 +313,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* ================= FOOTER ================= */}
+      {/* FOOTER */}
       <footer className="app-footer">© 2026 hotonnet.com</footer>
     </div>
   );
