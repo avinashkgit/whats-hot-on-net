@@ -4,6 +4,7 @@ from agents.extractor_pool import extract_articles_parallel
 from agents.context_builder_agent import build_context
 from agents.writer_agent import WriterAgent
 from agents.image_agent import ImageAgent
+from agents.gemini_image_generator import GeminiImageAgent
 
 
 def test_topic_agent():
@@ -56,6 +57,13 @@ def test_image_agent(topic):
     assert isinstance(image_url, str)
     assert image_url.startswith("http")
 
+def test_gemini_image_agent(topic):
+    print("\n=== Testing ImageAgent ===")
+    image_url = GeminiImageAgent().run(topic)
+    print("Image URL:", image_url)
+    assert isinstance(image_url, str)
+    assert image_url.startswith("http")
+
 
 def run_all_tests():
     print("\n==============================")
@@ -67,7 +75,9 @@ def run_all_tests():
     # links = test_search_agent(topic)
     # articles = test_extractor_agent(links)
     # context = test_context_builder(articles)
-    article = test_writer_agent("Quantum Computer", "Quantum computing is an area of computing focused on developing computer technology based on the principles of quantum theory...")
+    # article = test_writer_agent("Quantum Computer", "Quantum computing is an area of computing focused on developing computer technology based on the principles of quantum theory...")
+    image_url = test_gemini_image_agent("The rise of renewable energy in rural communities")
+    print("====:", image_url)
     print("\n✅ ALL AGENT TESTS PASSED SUCCESSFULLY\n")
 
 
