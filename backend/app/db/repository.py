@@ -10,17 +10,15 @@ from slugify import slugify
 # GET TOPICS (for Navigation / Filters)
 # ======================================================
 
+
 def get_topics(db: Session):
-    return (
-        db.query(Topic)
-        .order_by(Topic.name.asc())
-        .all()
-    )
+    return db.query(Topic).order_by(Topic.name.asc()).all()
 
 
 # ======================================================
 # CREATE ARTICLE (Admin / CMS)
 # ======================================================
+
 
 def save_article(
     db: Session,
@@ -52,30 +50,35 @@ def save_article(
 # GET ARTICLES (Paginated + Topic joined)
 # ======================================================
 
-def get_articles(
-    db: Session,
-    *,
-    topic_id: UUID | None = None,
-    page: int = 1,
-    limit: int = 10,
-):
-    query = (
-        db.query(Article)
-        .join(Topic)
-        .order_by(desc(Article.created_at))
-    )
+
+def get_articles(db, *, topic_id=None, page=1, limit=10):
+    query = db.query(Article).join(Topic).order_by(Article.created_at.desc())
 
     if topic_id:
         query = query.filter(Article.topic_id == topic_id)
 
     total = query.count()
 
-    items = (
-        query
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    )
+    articles = query.offset((page - 1) * limit).limit(limit).all()
+
+    items = [
+        {
+            "id": a.id,
+            "title": a.title,
+            "slug": a.slug,
+            "summary": a.summary,
+            "content": a.content,
+            "imageUrl": a.image_url,
+            "views": a.views,
+            "createdAt": a.created_at,
+            "topic": {
+                "id": a.topic.id,
+                "name": a.topic.name,
+                "slug": a.topic.slug,
+            },
+        }
+        for a in articles
+    ]
 
     return {
         "items": items,
@@ -90,30 +93,24 @@ def get_articles(
 # GET SINGLE ARTICLE BY SLUG (Article Page)
 # ======================================================
 
+
 def get_article_by_slug(
     db: Session,
     *,
     slug: str,
 ) -> Article | None:
-    return (
-        db.query(Article)
-        .join(Topic)
-        .filter(Article.slug == slug)
-        .first()
-    )
+    return db.query(Article).join(Topic).filter(Article.slug == slug).first()
+
 
 # ======================================================
 # GET OR CREATE TOPICS
 # ======================================================
 
+
 def get_or_create_topic(db, *, name: str) -> Topic:
     slug = slugify(name)
 
-    topic = (
-        db.query(Topic)
-        .filter(Topic.slug == slug)
-        .first()
-    )
+    topic = db.query(Topic).filter(Topic.slug == slug).first()
 
     if topic:
         return topic

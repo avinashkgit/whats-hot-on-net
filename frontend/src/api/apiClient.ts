@@ -5,7 +5,7 @@ import {
   Article,
 } from "@/models/schema";
 
-const API_BASE = "/api";
+const API_BASE = "https://whats-hot-on-net.onrender.com";
 
 const routes = {
   topics: {
