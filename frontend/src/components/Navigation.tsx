@@ -1,14 +1,14 @@
-import { Link, useLocation } from "wouter";
-import { useTopics } from "@/hooks/use-blog";
-import { cn } from "@/lib/utils";
-import { Search, Menu, X, Moon, Sun } from "lucide-react";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { useCategories } from "@/hooks/use-blog";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, Moon, Sun, X } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
 
 export function Navigation() {
-  const { data: topics } = useTopics();
+  const { data: topics } = useCategories();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -31,22 +31,26 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-6">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className={cn(
                 "text-xs font-bold uppercase tracking-wider transition-all hover:text-primary hover:scale-105",
-                location === "/" ? "text-primary border-b-2 border-primary pb-1" : "text-muted-foreground"
+                location === "/"
+                  ? "text-primary border-b-2 border-primary pb-1"
+                  : "text-muted-foreground"
               )}
             >
               Home
             </Link>
             {topics?.map((topic) => (
-              <Link 
-                key={topic.id} 
+              <Link
+                key={topic.id}
                 href={`/topic/${topic.id}`}
                 className={cn(
                   "text-xs font-bold uppercase tracking-wider transition-all hover:text-primary hover:scale-105",
-                  location === `/topic/${topic.id}` ? "text-primary border-b-2 border-primary pb-1" : "text-muted-foreground"
+                  location === `/topic/${topic.id}`
+                    ? "text-primary border-b-2 border-primary pb-1"
+                    : "text-muted-foreground"
                 )}
               >
                 {topic.name}
@@ -66,13 +70,17 @@ export function Navigation() {
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
-            
+
             {/* Mobile Menu Button */}
-            <button 
+            <button
               className="md:hidden p-2 text-foreground"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -88,16 +96,16 @@ export function Navigation() {
             className="md:hidden border-t border-border bg-background"
           >
             <div className="px-4 py-6 space-y-4">
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="block text-lg font-medium text-foreground py-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Latest
               </Link>
               {topics?.map((topic) => (
-                <Link 
-                  key={topic.id} 
+                <Link
+                  key={topic.id}
                   href={`/topic/${topic.id}`}
                   className="block text-lg font-medium text-muted-foreground hover:text-primary py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
