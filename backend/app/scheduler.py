@@ -19,7 +19,7 @@ def run():
         # =========================
         # 1️⃣ Pick TOPIC (idea)
         # =========================
-        topic = TopicAgent().run()
+        topic = TopicAgent(db).run()
         print("Topic idea:", topic)
 
         # =========================
