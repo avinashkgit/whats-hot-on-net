@@ -16,7 +16,7 @@ import { placeholderArticles } from "@/api/placeholderArticles";
    👉 false = use real API
 ====================================================== */
 
-const USE_TEMP_DATA = true;
+const USE_TEMP_DATA = false;
 
 /* ===========================
    === TOPICS ===
