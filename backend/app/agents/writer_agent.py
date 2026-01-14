@@ -82,7 +82,7 @@ Choose EXACTLY ONE category from this list:
                             },
                             "body": {
                                 "type": "string",
-                                "description": "800–1000 word article body in multiple paragraphs",
+                                "description": "500-600 word article body in multiple paragraphs",
                             },
                             "category": {"type": "string", "enum": ALLOWED_CATEGORIES},
                         },
