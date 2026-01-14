@@ -9,7 +9,6 @@ load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 ALLOWED_CATEGORIES = [
-    "Home",
     "News",
     "Science",
     "Tech",

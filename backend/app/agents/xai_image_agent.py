@@ -39,20 +39,15 @@ class XaiImageAgent:
         """
         # Highly optimized prompt for documentary/photojournalism realism (Aurora excels with this style)
         positive_prompt = f"""
-        Genuine breaking news photograph, {topic}, real world photojournalism, caught in the moment, 
-        candid, unposed, imperfect human moment, observed not directed
+        Wide establishing shot / long wide shot / environmental scene, genuine breaking news / documentary photograph of {topic}, focusing entirely on objects, setting, environment and aftermath, detailed scene description e.g. scattered items / equipment / displays / ingredients / stadium / stage setup, real world photojournalism style, caught in the moment, observed not directed, story told through things and context only
 
-        Shot on location with Canon EOS R5 Mark II / Sony A1 II, 50mm f/1.4 GM or 35mm f/1.8, 
-        f/2.2–f/2.8, razor sharp subject focus, natural imperfect bokeh, visible lens character
+        Shot on location with Canon EOS R5 Mark II / Sony A1 II, 24mm or 28mm wide-angle lens, f/5.6–f/11 for deep depth of field, sharp focus throughout the scene, natural lens character and slight edge distortion
 
-        Available light only, realistic harsh or soft field lighting, authentic shadows & highlights, 
-        true color balance, slightly imperfect white balance, realistic skin texture with pores & imperfections
+        Available light only, realistic lighting conditions matching the time of day or atmosphere, authentic shadows, highlights, true-to-life color balance, subtle imperfect white balance
 
-        RAW quality, maximum realistic detail, subtle organic grain, no digital smoothness
+        RAW quality, maximum realistic detail, subtle organic film-like grain, no digital smoothness or artificial perfection
 
-        STRICTLY NO: text, watermark, logo, signature, plastic skin, perfect symmetry, glamour lighting, 
-        studio look, fashion pose, artificial bokeh, over-sharpening, HDR look, AI smoothness, 
-        beauty retouching, idealized faces — maximum documentary realism
+        STRICTLY NO: text, watermark, logo, signature, people, humans, figures, silhouettes, bodies, faces, crowds, pedestrians, any human presence, plastic surfaces, perfect symmetry, glamour lighting, studio look, artificial bokeh, over-sharpening, HDR look, AI smoothness, beauty effects, close-up, portrait, headshot, tight crop — maximum documentary realism, environment/objects as the sole subject
         """
 
         payload = {
