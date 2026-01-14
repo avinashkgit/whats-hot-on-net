@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.db.database import SessionLocal
 from app.db.repository import (
-    get_topics,
+    get_categories,
     get_articles,
     get_article_by_slug,
 )
@@ -41,9 +41,9 @@ def get_db():
 # =========================
 
 # --- Topics (Navigation / Filters)
-@app.get("/topics")
+@app.get("/categories")
 def topics(db: Session = Depends(get_db)):
-    return get_topics(db)
+    return get_categories(db)
 
 
 # --- Articles list (Home + Pagination + Topic filter)

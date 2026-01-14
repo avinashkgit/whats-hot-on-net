@@ -22,9 +22,9 @@ const USE_TEMP_DATA = false;
    === TOPICS ===
 =========================== */
 
-export function useTopics() {
+export function useCategories() {
   return useQuery({
-    queryKey: ["topics"],
+    queryKey: ["categories"],
     queryFn: async () => {
       if (USE_TEMP_DATA) {
         return [

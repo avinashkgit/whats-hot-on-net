@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from uuid import UUID
 
-from .models import Article, Category, Topic
+from .models import Article, Category
 from slugify import slugify
 
 
@@ -11,8 +11,8 @@ from slugify import slugify
 # ======================================================
 
 
-def get_topics(db: Session):
-    return db.query(Topic).order_by(Topic.name.asc()).all()
+def get_categories(db: Session):
+    return db.query(Category).order_by(Category.name.asc()).all()
 
 
 # ======================================================
@@ -92,7 +92,7 @@ def get_article_by_slug(
     *,
     slug: str,
 ) -> Article | None:
-    return db.query(Article).join(Topic).filter(Article.slug == slug).first()
+    return db.query(Article).join(Category).filter(Article.slug == slug).first()
 
 
 # ======================================================

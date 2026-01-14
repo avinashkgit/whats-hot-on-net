@@ -9,7 +9,7 @@ const API_BASE = "https://whats-hot-on-net.onrender.com";
 
 const routes = {
   topics: {
-    list: `${API_BASE}/topics`,
+    list: `${API_BASE}/categories`,
   },
   articles: {
     list: `${API_BASE}/articles`,
