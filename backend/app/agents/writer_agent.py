@@ -8,7 +8,6 @@ load_dotenv()
 
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-
 ALLOWED_CATEGORIES = [
     "Home",
     "News",
@@ -25,86 +24,90 @@ ALLOWED_CATEGORIES = [
 
 class WriterAgent:
     def run(self, topic: str, context: str):
+
         system_message = (
             "You are a professional international news journalist.\n"
-            "You MUST write strictly using the provided context only.\n"
-            "You MUST classify the article into ONE allowed category.\n"
-            "You MUST return ONLY valid JSON.\n"
-            "You MUST NOT invent facts, sources, or categories.\n"
-            "If unsure, choose the closest logical category.\n"
+            "You must write using ONLY the provided context.\n"
+            "You must NOT invent facts, quotes, or sources.\n"
+            "You must output STRICTLY valid JSON that matches the schema.\n"
         )
 
         user_message = f"""
-Write a comprehensive news article using ONLY the provided context.
+Write a full-length news article.
 
-ORIGINAL TOPIC IDEA:
+TOPIC:
 {topic}
 
-CONTEXT:
+CONTEXT (ONLY SOURCE OF TRUTH):
 {context}
 
-STRICT RULES:
+WRITING RULES:
 - Neutral journalistic tone
-- No bullet points
-- No headings
-- No markdown
-- No explanations
-- Multiple paragraphs is must
-- Engaging but factual
-- NO extra text outside JSON
+- Multiple paragraphs
+- NO headings
+- NO bullet points
+- NO markdown
+- NO explanations
+- Body must be between 800 and 1000 words
+- If unable to reach 800 words from context, expand logically WITHOUT adding new facts
 
-You MUST classify the article into EXACTLY ONE of these categories:
+CATEGORY RULE:
+Choose EXACTLY ONE category from this list:
 {", ".join(ALLOWED_CATEGORIES)}
-
-Return ONLY valid JSON in this EXACT format:
-
-{{
-  "title": "clear and engaging article title",
-  "summary": "2–3 sentence concise summary",
-  "body": "full article text in multiple paragraphs",
-  "category": "ONE value from the allowed list"
-}}
 """
 
         response = client.chat.completions.create(
             model=GPT_MODEL,
+            temperature=0.3,
+            max_tokens=1800,
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0.3,
-            max_tokens=1400,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "news_article",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "title": {
+                                "type": "string",
+                                "description": "Clear and engaging article title",
+                            },
+                            "summary": {
+                                "type": "string",
+                                "description": "2–3 sentence concise summary",
+                            },
+                            "body": {
+                                "type": "string",
+                                "description": "800–1000 word article body in multiple paragraphs",
+                            },
+                            "category": {"type": "string", "enum": ALLOWED_CATEGORIES},
+                        },
+                        "required": ["title", "summary", "body", "category"],
+                    },
+                },
+            },
         )
 
-        raw_output = response.choices[0].message.content.strip()
-
-        try:
-            data = json.loads(raw_output)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"Invalid JSON returned by model:\n{raw_output}") from e
+        data = response.choices[0].message.content
 
         # =========================
-        # VALIDATION (HARD GUARDS)
+        # HARD VALIDATION (SAFETY)
         # =========================
-        if not data.get("title"):
-            raise RuntimeError("Missing title")
+        word_count = len(data["body"].split())
 
-        if not data.get("summary"):
-            raise RuntimeError("Missing summary")
-
-        if not data.get("body"):
-            raise RuntimeError("Missing article body")
-
-        category = data.get("category")   # ✅ FIXED
-
-        if category not in ALLOWED_CATEGORIES:
+        if not 800 <= word_count <= 1000:
             raise RuntimeError(
-                f"Invalid category '{category}'. Must be one of {ALLOWED_CATEGORIES}"
+                f"Article length invalid: {word_count} words (expected 800–1000)"
             )
 
         return {
             "title": data["title"].strip(),
             "summary": data["summary"].strip(),
             "body": data["body"].strip(),
-            "category": category,
+            "category": data["category"],
+            "word_count": word_count,
         }
