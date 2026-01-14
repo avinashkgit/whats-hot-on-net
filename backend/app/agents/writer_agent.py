@@ -92,22 +92,11 @@ Choose EXACTLY ONE category from this list:
             },
         )
 
-        data = response.choices[0].message.content
-
-        # =========================
-        # HARD VALIDATION (SAFETY)
-        # =========================
-        word_count = len(data["body"].split())
-
-        if not 800 <= word_count <= 1000:
-            raise RuntimeError(
-                f"Article length invalid: {word_count} words (expected 800–1000)"
-            )
+        data = response.choices[0].message.parsed
 
         return {
             "title": data["title"].strip(),
             "summary": data["summary"].strip(),
             "body": data["body"].strip(),
             "category": data["category"],
-            "word_count": word_count,
         }
