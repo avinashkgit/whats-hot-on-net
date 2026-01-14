@@ -6,9 +6,10 @@ import {
 } from "@/models/schema";
 
 const API_BASE = "https://whats-hot-on-net.onrender.com";
+// const API_BASE = "http://127.0.0.1:8000";
 
 const routes = {
-  topics: {
+  categories: {
     list: `${API_BASE}/categories`,
   },
   articles: {
@@ -45,13 +46,17 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 =========================== */
 
 export const apiClient = {
-  /* ---------- TOPICS ---------- */
-  getTopics() {
-    return apiFetch<Category[]>(routes.topics.list);
+  /* ---------- CATEGORIES ---------- */
+  getCategories() {
+    return apiFetch<Category[]>(routes.categories.list);
   },
 
   /* ---------- ARTICLES ---------- */
-  getArticles(params?: { topicId?: string; page?: number; limit?: number }) {
+  getArticles(params?: {
+    category?: string;   // ✅ slug, not ID
+    page?: number;
+    limit?: number;
+  }) {
     const query = params
       ? `?${new URLSearchParams(
           Object.entries(params)

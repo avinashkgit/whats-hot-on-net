@@ -3,7 +3,7 @@ import { ArticleCard } from "@/components/ArticleCard";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Loader2 } from "lucide-react";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useRoute, useSearch } from "wouter";
 import {
   Pagination,
   PaginationContent,
@@ -14,19 +14,27 @@ import {
 } from "@/components/ui/pagination";
 
 interface HomeProps {
-  topicId?: string;
+  category?: string;
 }
 
-export default function Home({ topicId }: HomeProps) {
+export default function Home({ category }: HomeProps) {
   const [, setLocation] = useLocation();
+
+  // Pagination
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = 10;
 
-  const { data, isLoading, error } = useArticles(topicId, page, limit);
+  const { data, isLoading, error } = useArticles({
+    category,
+    page,
+    limit,
+  });
+  /* ===========================
+     LOADING / ERROR STATES
+  ============================ */
 
-  // 🔹 Initial load ONLY (no data yet)
   if (isLoading && !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -35,7 +43,6 @@ export default function Home({ topicId }: HomeProps) {
     );
   }
 
-  // 🔹 Real error state ONLY
   if (error) {
     console.error("ARTICLES QUERY ERROR:", error);
     return (
@@ -51,39 +58,52 @@ export default function Home({ topicId }: HomeProps) {
     );
   }
 
-  // 🔹 Safety fallback (should almost never happen)
   if (!data) return null;
 
   const { items: articles, totalPages } = data;
   const featuredArticle = articles[0];
   const remainingArticles = articles.slice(1);
 
+  /* ===========================
+     PAGINATION HANDLER
+  ============================ */
+
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(search);
     params.set("page", newPage.toString());
-    setLocation(`?${params.toString()}`);
+
+    const basePath = category ? `/category/${category}` : "/";
+    setLocation(`${basePath}?${params.toString()}`);
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  /* ===========================
+     RENDER
+  ============================ */
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
       <Navigation />
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex-grow">
-        {!topicId && page === 1 && (
+        {/* ===========================
+            HERO HEADER (HOME ONLY)
+        ============================ */}
+        {!category && page === 1 && (
           <div className="mb-12 text-center max-w-2xl mx-auto">
-            {/* <span className="text-primary font-bold tracking-widest text-xs uppercase mb-2 block">
-              HotOnNet
-            </span> */}
             <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-4 leading-tight">
               Stories that matter, trending across the world.
             </h1>
-            {/* <p className="text-lg text-muted-foreground">
-              Essential news, science, and culture.
-            </p> */}
+            <p className="text-lg text-muted-foreground">
+              Essential news, science, tech, culture, and global insights.
+            </p>
           </div>
         )}
 
+        {/* ===========================
+            FEATURED ARTICLE
+        ============================ */}
         {featuredArticle && page === 1 && (
           <ArticleCard article={featuredArticle} featured />
         )}
@@ -92,16 +112,22 @@ export default function Home({ topicId }: HomeProps) {
           <div className="border-t border-border my-16" />
         )}
 
+        {/* ===========================
+            ARTICLE GRID
+        ============================ */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
           {(page === 1 ? remainingArticles : articles).map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
         </div>
 
+        {/* ===========================
+            EMPTY STATE
+        ============================ */}
         {articles.length === 0 && (
           <div className="text-center py-20 bg-muted/30 rounded-3xl">
             <h3 className="text-xl font-bold text-muted-foreground">
-              No articles found.
+              No articles found in this category.
             </h3>
             <button
               onClick={() => setLocation("/")}
@@ -112,6 +138,9 @@ export default function Home({ topicId }: HomeProps) {
           </div>
         )}
 
+        {/* ===========================
+            PAGINATION
+        ============================ */}
         {totalPages > 1 && (
           <div className="mt-20">
             <Pagination>

@@ -27,13 +27,13 @@ export function Footer() {
               <Link href="/" className="hover:text-primary transition-colors">
                 Home
               </Link>
-              {categories?.map((categoriy) => (
+              {categories?.map((category) => (
                 <Link
-                  key={categoriy.id}
-                  href={`/topic/${categoriy.id}`}
+                  key={category.id}
+                  href={`/topic/${category.id}`}
                   className="hover:text-primary transition-colors"
                 >
-                  {categoriy.name}
+                  {category.name}
                 </Link>
               ))}
             </div>

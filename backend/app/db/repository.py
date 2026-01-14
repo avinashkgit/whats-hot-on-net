@@ -53,18 +53,25 @@ def save_article(
 def get_articles(
     db: Session,
     *,
-    category_id: UUID | None = None,
+    category: str | None = None,
     page: int = 1,
     limit: int = 10,
 ):
-    query = db.query(Article).join(Category).order_by(Article.created_at.desc())
+    query = db.query(Article).join(Category)
 
-    if category_id:
-        query = query.filter(Article.category_id == category_id)
+    # ✅ FILTER BY CATEGORY SLUG
+    if category:
+        query = query.filter(Category.slug == category)
+
+    query = query.order_by(Article.created_at.desc())
 
     total = query.count()
-
-    articles = query.offset((page - 1) * limit).limit(limit).all()
+    articles = (
+        query
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
 
     return {
         "items": [
@@ -77,7 +84,6 @@ def get_articles(
                 "imageUrl": a.image_url,
                 "views": a.views,
                 "createdAt": a.created_at,
-                # ✅ UI NOW EXPECTS `category`
                 "category": {
                     "id": a.category.id,
                     "name": a.category.name,
@@ -91,6 +97,7 @@ def get_articles(
         "limit": limit,
         "totalPages": (total + limit - 1) // limit,
     }
+
 
 
 # ======================================================

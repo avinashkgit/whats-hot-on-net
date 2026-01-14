@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 export function Navigation() {
-  const { data: topics } = useCategories();
+  const { data: categories } = useCategories();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -42,20 +42,26 @@ export function Navigation() {
             >
               Home
             </Link>
-            {topics?.map((topic) => (
-              <Link
-                key={topic.id}
-                href={`/topic/${topic.id}`}
-                className={cn(
-                  "text-xs font-bold uppercase tracking-wider transition-all hover:text-primary hover:scale-105",
-                  location === `/topic/${topic.id}`
-                    ? "text-primary border-b-2 border-primary pb-1"
-                    : "text-muted-foreground"
-                )}
-              >
-                {topic.name}
-              </Link>
-            ))}
+
+            {categories?.map((category) => {
+              const href = `/category/${category.slug}`;
+              const active = location === href;
+
+              return (
+                <Link
+                  key={category.id}
+                  href={href}
+                  className={cn(
+                    "text-xs font-bold uppercase tracking-wider transition-all hover:text-primary hover:scale-105",
+                    active
+                      ? "text-primary border-b-2 border-primary pb-1"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {category.name}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Actions */}
@@ -73,7 +79,7 @@ export function Navigation() {
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden p-2 text-foreground"
+              className="lg:hidden p-2 text-foreground"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? (
@@ -93,7 +99,7 @@ export function Navigation() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border bg-background"
+            className="lg:hidden border-t border-border bg-background"
           >
             <div className="px-4 py-6 space-y-4">
               <Link
@@ -103,14 +109,15 @@ export function Navigation() {
               >
                 Latest
               </Link>
-              {topics?.map((topic) => (
+
+              {categories?.map((category) => (
                 <Link
-                  key={topic.id}
-                  href={`/topic/${topic.id}`}
+                  key={category.id}
+                  href={`/category/${category.slug}`}
                   className="block text-lg font-medium text-muted-foreground hover:text-primary py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {topic.name}
+                  {category.name}
                 </Link>
               ))}
             </div>

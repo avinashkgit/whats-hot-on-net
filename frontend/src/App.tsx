@@ -13,11 +13,13 @@ function Router() {
   return (
     <Switch>
       <Route path="/">
-        {(params) => <Home />}
+        {() => <Home />}
       </Route>
-      <Route path="/topic/:id">
-        {(params) => <Home topicId={params.id} />}
+
+      <Route path="/category/:slug">
+        {(params) => <Home category={params.slug} />}
       </Route>
+
       <Route path="/article/:slug" component={ArticleDetail} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route component={NotFound} />

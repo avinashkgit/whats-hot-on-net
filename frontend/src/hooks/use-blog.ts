@@ -18,53 +18,72 @@ import type { Article } from "@/models/schema";
 const USE_TEMP_DATA = false;
 
 /* ===========================
-   === TOPICS ===
+   === CATEGORIES ===
 =========================== */
 
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
+
     queryFn: async () => {
       if (USE_TEMP_DATA) {
         return [
           {
-            id: "temp-topic",
-            name: "General",
-            slug: "general",
+            id: "temp-category",
+            name: "News",
+            slug: "news",
           },
         ];
       }
 
-      return apiClient.getTopics();
+      // backend: GET /categories
+      return apiClient.getCategories();
     },
+
     retry: USE_TEMP_DATA ? false : 3,
+    staleTime: 1000 * 60 * 5, // 5 minutes (categories rarely change)
   });
 }
 
 /* ===========================
-   === ARTICLES ===
+   === ARTICLES (LIST) ===
 =========================== */
 
-export function useArticles(
-  topicId?: string,
-  page: number = 1,
-  limit: number = 10
-) {
+interface UseArticlesParams {
+  category?: string; // category slug
+  page?: number;
+  limit?: number;
+}
+
+export function useArticles({
+  category,
+  page = 1,
+  limit = 10
+}: UseArticlesParams) {
   return useQuery({
-    queryKey: ["articles", { topicId, page, limit }],
+    // ✅ category must be part of the key
+    queryKey: ["articles", category, page, limit],
 
     queryFn: async () => {
+      if (USE_TEMP_DATA) {
+        return {
+          items: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+        };
+      }
+
+      // backend: GET /articles?category=slug&page=&limit=
       return apiClient.getArticles({
-        topicId,
+        category,
         page,
         limit,
       });
     },
 
-    // ✅ React Query v5 best practice
     placeholderData: keepPreviousData,
-
-    // ❌ do not retry when mocking
     retry: USE_TEMP_DATA ? false : 3,
   });
 }
@@ -79,6 +98,9 @@ export function useArticle(slug: string) {
     enabled: !!slug,
 
     queryFn: async () => {
+      if (USE_TEMP_DATA) return null;
+
+      // backend: GET /articles/:slug
       return apiClient.getArticleBySlug(slug);
     },
 
@@ -94,11 +116,14 @@ export function useCreateArticle() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: Omit<Article, "id" | "views" | "createdAt">) => {
+    mutationFn: async (
+      data: Omit<Article, "id" | "views" | "createdAt">
+    ) => {
       return apiClient.createArticle(data);
     },
 
     onSuccess: () => {
+      // 🔄 refresh all article lists
       queryClient.invalidateQueries({
         queryKey: ["articles"],
       });
