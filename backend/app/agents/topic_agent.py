@@ -1,80 +1,56 @@
 import feedparser
 import random
 import re
+from sqlalchemy.orm import Session
 
-GOOGLE_NEWS_RSS = "https://news.google.com/rss?hl=en&gl=US&ceid=US:en"
+from app.db.models import Article
 
-# Sources that work well with newspaper3k
-ALLOWED_SOURCES = (
-    "Reuters",
-    "BBC",
-    "AP News",
-    "The Guardian",
-    "Al Jazeera",
-    "Financial Times",
-    "The New York Times",
-    "Politico",
-    "Axios",
-)
-
-# Topics that frequently fail extraction or are low-value for global news
-DISALLOWED_KEYWORDS = (
-    "Game Recap",
-    "Preview",
-    "vs.",
-    "ESPN",
-    "Netflix",
-    "Episode",
-    "Season",
-    "Trailer",
-    "Box Office",
-    "Awards",
-    "Minecraft",
-    "Dynamite",
-    "Wrestling",
-    "NBA",
-    "NFL",
-    "NHL",
-    "MLB",
-)
+REGIONAL_FEEDS = [
+    "https://news.google.com/rss?hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss?hl=en&gl=GB&ceid=GB:en",
+    "https://news.google.com/rss?hl=en&gl=IN&ceid=IN:en",
+    "https://news.google.com/rss?hl=en&gl=AU&ceid=AU:en",
+    "https://news.google.com/rss?hl=en&gl=AE&ceid=AE:en",
+]
 
 
 class TopicAgent:
+    def __init__(self, db: Session):
+        self.db = db
+
     def run(self) -> str:
-        feed = feedparser.parse(GOOGLE_NEWS_RSS)
-        print("Fetched", len(feed.entries), "news entries")
+        all_topics: list[str] = []
 
-        if not feed.entries:
+        for feed_url in REGIONAL_FEEDS:
+            feed = feedparser.parse(feed_url)
+
+            for entry in feed.entries:
+                title = entry.title
+
+                # Clean source suffix
+                title = re.sub(r"\s+-\s+.*$", "", title)
+                title = title.strip(" -–:")
+
+                # Avoid very weak topics
+                if len(title.split()) < 4:
+                    continue
+
+                all_topics.append(title)
+
+        if not all_topics:
             return "Global geopolitical and economic developments"
 
-        topics = []
+        random.shuffle(all_topics)
 
-        for entry in feed.entries:
-            raw_title = entry.title
-            print("Entry Title:", raw_title)
+        # ✅ Avoid duplicates already in DB
+        for topic in all_topics:
+            exists = (
+                self.db.query(Article)
+                .filter(Article.topic == topic)
+                .first()
+            )
+            if not exists:
+                return topic
 
-            # Ensure source is extractable
-            if not any(src in raw_title for src in ALLOWED_SOURCES):
-                continue
-
-            # Remove source suffix (e.g. " - BBC News")
-            title = re.sub(r"\s+-\s+.*$", "", raw_title)
-
-            # Remove trailing punctuation
-            title = title.strip(" -–:")
-
-            # Filter disallowed categories
-            if any(word in title for word in DISALLOWED_KEYWORDS):
-                continue
-
-            # Avoid very short / weak topics
-            if len(title.split()) < 4:
-                continue
-
-            topics.append(title)
-
-        if not topics:
-            print("⚠️ No strong extractable topics found, using fallback")
-            return "Global geopolitical and economic developments"
-
-        return random.choice(topics)
+        # Fallback if everything already exists
+        return random.choice(all_topics)

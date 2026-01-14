@@ -157,3 +157,11 @@ def get_or_create_category(db: Session, *, name: str) -> Category:
     db.refresh(category)
 
     return category
+
+def topic_exists(db, *, topic: str) -> bool:
+    return (
+        db.query(Article.id)
+        .filter(Article.topic == topic)
+        .first()
+        is not None
+    )
