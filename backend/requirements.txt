@@ -8,13 +8,11 @@ pillow
 python-dotenv
 feedparser
 certifi
-feedparser
-cloudinary
-psycopg2
 openai
 gnews
 tenacity
-newspaper3k
 lxml_html_clean
 googlenewsdecoder
-genai
+google-generativeai
+newspaper4k
+slugify
