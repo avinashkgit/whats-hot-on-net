@@ -6,6 +6,7 @@ from agents.writer_agent import WriterAgent
 from agents.image_agent import ImageAgent
 from agents.gemini_image_generator import GeminiImageAgent
 from agents.xai_image_agent import XaiImageAgent
+from db.database import SessionLocal
 
 
 def test_topic_agent():
@@ -77,17 +78,17 @@ def run_all_tests():
     print("\n==============================")
     print(" RUNNING AGENT PIPELINE TESTS ")
     print("==============================")
-
-    # topic = TopicAgent().run()
+    db = SessionLocal()
+    topic = TopicAgent().run()
 
     # links = test_search_agent(topic)
     # articles = test_extractor_agent(links)
     # context = test_context_builder(articles)
     # article = test_writer_agent("Quantum Computer", "Quantum computing is an area of computing focused on developing computer technology based on the principles of quantum theory...")
     # image_url = test_image_agent("The rise of renewable energy in rural communities")
-    image_url = test_xai_image_agent("The rise of renewable energy in rural communities")
+    # image_url = test_xai_image_agent("The rise of renewable energy in rural communities")
     # image_url = test_gemini_image_agent("The rise of renewable energy in rural communities")
-    print("====:", image_url)
+    print("====:", topic)
     print("\n✅ ALL AGENT TESTS PASSED SUCCESSFULLY\n")
 
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -63,9 +63,12 @@ def articles(
 
 
 # --- Single article (Article page)
-@app.get("/articles/{slug}")
+app.get("/articles/{slug}")
 def article(slug: str, db: Session = Depends(get_db)):
     article = get_article_by_slug(db, slug=slug)
     if not article:
-        return {"message": "Article not found"}
+        raise HTTPException(
+            status_code=404,
+            detail=f"Article not found"
+        )
     return article
