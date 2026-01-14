@@ -92,7 +92,12 @@ Choose EXACTLY ONE category from this list:
             },
         )
 
-        data = response.choices[0].message.parsed
+        msg = response.choices[0].message
+
+        if hasattr(msg, "parsed") and msg.parsed is not None:
+            data = msg.parsed
+        else:
+            data = json.loads(msg.content)
 
         return {
             "title": data["title"].strip(),
