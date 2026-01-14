@@ -72,15 +72,15 @@ export default function Home({ topicId }: HomeProps) {
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex-grow">
         {!topicId && page === 1 && (
           <div className="mb-12 text-center max-w-2xl mx-auto">
-            <span className="text-primary font-bold tracking-widest text-xs uppercase mb-2 block">
+            {/* <span className="text-primary font-bold tracking-widest text-xs uppercase mb-2 block">
               HotOnNet
-            </span>
+            </span> */}
             <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-4 leading-tight">
-              Stories that matter, curated for you.
+              Stories that matter, trending across the world.
             </h1>
-            <p className="text-lg text-muted-foreground">
+            {/* <p className="text-lg text-muted-foreground">
               Essential news, science, and culture.
-            </p>
+            </p> */}
           </div>
         )}
 
