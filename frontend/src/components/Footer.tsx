@@ -29,8 +29,8 @@ export function Footer() {
               </Link>
               {categories?.map((category) => (
                 <Link
-                  key={category.id}
-                  href={`/topic/${category.id}`}
+                  key={category.slug}
+                  href={`/category/${category.slug}`}
                   className="hover:text-primary transition-colors"
                 >
                   {category.name}
@@ -55,7 +55,7 @@ export function Footer() {
         </div>
 
         <div className="pt-8 text-center md:text-left text-xs text-muted-foreground">
-          © {new Date().getFullYear()} HotOnNet Media. All rights reserved.
+          © {new Date().getFullYear()} (hotonnet.com) All rights reserved.
         </div>
       </div>
     </footer>
