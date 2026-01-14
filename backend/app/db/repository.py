@@ -103,6 +103,10 @@ def get_article_by_slug(db: Session, *, slug: str):
 
     if not article:
         return None
+    
+    article.views += 1
+    db.commit()
+    db.refresh(article)
 
     return {
         "id": article.id,
