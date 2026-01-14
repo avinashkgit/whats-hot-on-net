@@ -17,8 +17,8 @@ from app.db.database import Base
 # Topic Model
 # ============================
 
-class Topic(Base):
-    __tablename__ = "topics"
+class Category(Base):
+    __tablename__ = "categories"
 
     id = Column(
         UUID(as_uuid=True),
@@ -38,7 +38,7 @@ class Topic(Base):
     # Relationships
     articles = relationship(
         "Article",
-        back_populates="topic",
+        back_populates="category",
         cascade="all, delete-orphan",
     )
 
@@ -66,7 +66,7 @@ class Article(Base):
 
     topic_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("topics.id", ondelete="CASCADE"),
+        ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -84,6 +84,6 @@ class Article(Base):
 
     # Relationships
     topic = relationship(
-        "Topic",
+        "Category",
         back_populates="articles",
     )

@@ -32,7 +32,7 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
         
         <div className="space-y-4 md:pr-8">
           <div className="flex items-center space-x-2 text-sm font-bold tracking-wider uppercase text-primary">
-            <span className="bg-primary/10 px-3 py-1 rounded-full">{article.topic.name}</span>
+            <span className="bg-primary/10 px-3 py-1 rounded-full">{article.category.name}</span>
             <span className="text-muted-foreground">•</span>
             <span className="text-muted-foreground font-normal normal-case">
               {article.createdAt && format(new Date(article.createdAt), "MMMM d, yyyy")}
@@ -82,7 +82,7 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
       
       <div className="flex flex-col flex-grow">
         <div className="flex items-center justify-between text-xs font-bold tracking-wider uppercase mb-3">
-          <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-full">{article.topic.name}</span>
+          <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-full">{article.category.name}</span>
           <span className="text-muted-foreground font-normal normal-case">
             {article.createdAt && format(new Date(article.createdAt), "MMM d, yyyy")}
           </span>

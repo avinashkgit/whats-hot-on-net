@@ -11,10 +11,10 @@ export const placeholderArticles: PaginatedResponse<ArticleWithTopic> = {
       content: "",
       summary: "This is placeholder content while data loads.",
       imageUrl: undefined,
-      topicId: "test-topic",
+      categoryId: "test-topic",
       views: 0,
       createdAt: new Date().toISOString(),
-      topic: {
+      category: {
         id: "test-topic",
         name: "Loading",
         slug: "loading",
@@ -27,10 +27,10 @@ export const placeholderArticles: PaginatedResponse<ArticleWithTopic> = {
       content: "",
       summary: "Please wait while we fetch real data.",
       imageUrl: undefined,
-      topicId: "test-topic",
+      categoryId: "test-topic",
       views: 0,
       createdAt: new Date().toISOString(),
-      topic: {
+      category: {
         id: "test-topic",
         name: "Loading",
         slug: "loading",

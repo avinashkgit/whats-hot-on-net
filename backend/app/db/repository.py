@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from uuid import UUID
 
-from .models import Article, Topic
+from .models import Article, Category, Topic
 from slugify import slugify
 
 
@@ -27,22 +27,21 @@ def save_article(
     slug: str,
     summary: str,
     content: str,
-    topic_id: UUID,
+    category_id,
     image_url: str | None = None,
-) -> Article:
+):
     article = Article(
         title=title,
         slug=slug,
         summary=summary,
         content=content,
-        topic_id=topic_id,
+        category_id=category_id,
         image_url=image_url,
     )
 
     db.add(article)
     db.commit()
     db.refresh(article)
-
     return article
 
 
@@ -51,37 +50,31 @@ def save_article(
 # ======================================================
 
 
-def get_articles(db, *, topic_id=None, page=1, limit=10):
-    query = db.query(Article).join(Topic).order_by(Article.created_at.desc())
-
-    if topic_id:
-        query = query.filter(Article.topic_id == topic_id)
+def get_articles(db, *, page=1, limit=10):
+    query = db.query(Article).join(Category).order_by(Article.created_at.desc())
 
     total = query.count()
-
     articles = query.offset((page - 1) * limit).limit(limit).all()
 
-    items = [
-        {
-            "id": a.id,
-            "title": a.title,
-            "slug": a.slug,
-            "summary": a.summary,
-            "content": a.content,
-            "imageUrl": a.image_url,
-            "views": a.views,
-            "createdAt": a.created_at,
-            "topic": {
-                "id": a.topic.id,
-                "name": a.topic.name,
-                "slug": a.topic.slug,
-            },
-        }
-        for a in articles
-    ]
-
     return {
-        "items": items,
+        "items": [
+            {
+                "id": a.id,
+                "title": a.title,
+                "slug": a.slug,
+                "summary": a.summary,
+                "content": a.content,
+                "imageUrl": a.image_url,
+                "views": a.views,
+                "createdAt": a.created_at,
+                "topic": {
+                    "id": a.category.id,
+                    "name": a.category.name,
+                    "slug": a.category.slug,
+                },
+            }
+            for a in articles
+        ],
         "total": total,
         "page": page,
         "limit": limit,
@@ -107,21 +100,19 @@ def get_article_by_slug(
 # ======================================================
 
 
-def get_or_create_topic(db, *, name: str) -> Topic:
+def get_or_create_category(db: Session, *, name: str) -> Category:
     slug = slugify(name)
 
-    topic = db.query(Topic).filter(Topic.slug == slug).first()
+    category = db.query(Category).filter(Category.slug == slug).first()
+    if category:
+        return category
 
-    if topic:
-        return topic
-
-    topic = Topic(
+    category = Category(
         name=name,
         slug=slug,
     )
-
-    db.add(topic)
+    db.add(category)
     db.commit()
-    db.refresh(topic)
+    db.refresh(category)
 
-    return topic
+    return category

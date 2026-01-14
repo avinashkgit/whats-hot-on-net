@@ -2,7 +2,7 @@
 // === DOMAIN TYPES ===
 // =======================
 
-export interface Topic {
+export interface Category {
   id: string;
   name: string;
   slug: string;
@@ -15,14 +15,14 @@ export interface Article {
   content: string;       // HTML or markdown
   summary: string;
   imageUrl?: string;     // optional (important)
-  topicId: string;
+  categoryId: string;
   views: number;
   createdAt: string;     // ISO string from API
 }
 
 // Article joined with topic
 export interface ArticleWithTopic extends Article {
-  topic: Topic;
+  category: Category;
 }
 
 // =======================
@@ -39,7 +39,7 @@ export interface InsertArticle
 // === API RESPONSES ===
 // =======================
 
-export type TopicResponse = Topic;
+export type CategoryResponse = Category;
 
 export type ArticleResponse = ArticleWithTopic;
 

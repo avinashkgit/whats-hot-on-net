@@ -1,5 +1,5 @@
 import {
-  Topic,
+  Category,
   PaginatedResponse,
   ArticleWithTopic,
   Article,
@@ -47,7 +47,7 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 export const apiClient = {
   /* ---------- TOPICS ---------- */
   getTopics() {
-    return apiFetch<Topic[]>(routes.topics.list);
+    return apiFetch<Category[]>(routes.topics.list);
   },
 
   /* ---------- ARTICLES ---------- */

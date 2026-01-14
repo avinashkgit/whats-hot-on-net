@@ -5,10 +5,10 @@ from agents.search_agent import search_news
 from agents.extractor_pool import extract_articles_parallel
 from agents.context_builder_agent import build_context, build_fallback_context
 from agents.writer_agent import WriterAgent
-from agents.image_agent import ImageAgent
+# from agents.image_agent import ImageAgent
 
 from app.db.database import SessionLocal
-from app.db.repository import save_article, get_or_create_topic
+from app.db.repository import save_article, get_or_create_category
 
 
 def run():
@@ -16,26 +16,20 @@ def run():
 
     try:
         # =========================
-        # 1️⃣ Pick topic (AI)
+        # 1️⃣ Pick TOPIC (idea)
         # =========================
-        topic_name = TopicAgent().run()
-        print("Topic:", topic_name)
+        topic = TopicAgent().run()
+        print("Topic idea:", topic)
 
         # =========================
-        # 2️⃣ Get or create topic
+        # 2️⃣ Discover links
         # =========================
-        topic = get_or_create_topic(db, name=topic_name)
-        topic_id = topic.id
-
-        # =========================
-        # 3️⃣ Discover links
-        # =========================
-        links = search_news(topic_name, limit=5)
+        links = search_news(topic, limit=5)
         if not links:
             raise RuntimeError("No news links found")
 
         # =========================
-        # 4️⃣ Extract context
+        # 3️⃣ Extract context
         # =========================
         articles = extract_articles_parallel(links, max_workers=5)
 
@@ -46,22 +40,23 @@ def run():
             context = build_fallback_context(links)
 
         # =========================
-        # 5️⃣ Write article
+        # 4️⃣ Write article + CATEGORY
         # =========================
-        article = WriterAgent().run(topic_name, context)
+        article = WriterAgent().run(topic, context)
 
         title = article["title"]
         content = article["body"]
         summary = article.get("summary") or content[:200]
+        category_name = article["category"]   # ✅ from WriterAgent
         slug = slugify(title)
 
         # =========================
-        # 6️⃣ Generate image
+        # 5️⃣ Get or create CATEGORY
         # =========================
-        # image_url = ImageAgent().run(topic_name)
+        category = get_or_create_category(db, name=category_name)
 
         # =========================
-        # 7️⃣ Save article
+        # 6️⃣ Save article
         # =========================
         save_article(
             db=db,
@@ -69,11 +64,13 @@ def run():
             slug=slug,
             summary=summary,
             content=content,
-            topic_id=topic_id,
-            image_url="image_url",
+            category_id=category.id,
+            image_url=None,
         )
 
-        print("✅ Article saved successfully")
+        print(
+            f"✅ Article saved | topic='{topic}' | category='{category_name}'"
+        )
 
     finally:
         db.close()

@@ -9,7 +9,7 @@ load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 
-ALLOWED_TOPICS = [
+ALLOWED_CATEGORIES = [
     "Home",
     "News",
     "Science",
@@ -28,10 +28,10 @@ class WriterAgent:
         system_message = (
             "You are a professional international news journalist.\n"
             "You MUST write strictly using the provided context only.\n"
-            "You MUST classify the article into ONE allowed topic.\n"
+            "You MUST classify the article into ONE allowed category.\n"
             "You MUST return ONLY valid JSON.\n"
             "You MUST NOT invent facts, sources, or categories.\n"
-            "If unsure, choose the closest logical topic.\n"
+            "If unsure, choose the closest logical category.\n"
         )
 
         user_message = f"""
@@ -49,12 +49,12 @@ STRICT RULES:
 - No headings
 - No markdown
 - No explanations
-- Multiple paragraphs must
+- Multiple paragraphs
 - Engaging but factual
 - NO extra text outside JSON
 
-You MUST classify the article into EXACTLY ONE of these topics:
-{", ".join(ALLOWED_TOPICS)}
+You MUST classify the article into EXACTLY ONE of these categories:
+{", ".join(ALLOWED_CATEGORIES)}
 
 Return ONLY valid JSON in this EXACT format:
 
@@ -62,7 +62,7 @@ Return ONLY valid JSON in this EXACT format:
   "title": "clear and engaging article title",
   "summary": "2–3 sentence concise summary",
   "body": "full article text in multiple paragraphs",
-  "topic": "ONE value from the allowed list"
+  "category": "ONE value from the allowed list"
 }}
 """
 
@@ -95,16 +95,16 @@ Return ONLY valid JSON in this EXACT format:
         if not data.get("body"):
             raise RuntimeError("Missing article body")
 
-        topic_value = data.get("topic")
+        category = data.get("category")   # ✅ FIXED
 
-        if topic_value not in ALLOWED_TOPICS:
+        if category not in ALLOWED_CATEGORIES:
             raise RuntimeError(
-                f"Invalid topic '{topic_value}'. " f"Must be one of {ALLOWED_TOPICS}"
+                f"Invalid category '{category}'. Must be one of {ALLOWED_CATEGORIES}"
             )
 
         return {
             "title": data["title"].strip(),
             "summary": data["summary"].strip(),
             "body": data["body"].strip(),
-            "topic": topic_value,
+            "category": category,
         }
