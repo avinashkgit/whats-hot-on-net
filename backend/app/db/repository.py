@@ -57,23 +57,14 @@ def get_articles(
     page: int = 1,
     limit: int = 10,
 ):
-    query = (
-        db.query(Article)
-        .join(Category)
-        .order_by(Article.created_at.desc())
-    )
+    query = db.query(Article).join(Category).order_by(Article.created_at.desc())
 
     if category_id:
         query = query.filter(Article.category_id == category_id)
 
     total = query.count()
 
-    articles = (
-        query
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    )
+    articles = query.offset((page - 1) * limit).limit(limit).all()
 
     return {
         "items": [
@@ -102,18 +93,32 @@ def get_articles(
     }
 
 
-
 # ======================================================
 # GET SINGLE ARTICLE BY SLUG (Article Page)
 # ======================================================
 
 
-def get_article_by_slug(
-    db: Session,
-    *,
-    slug: str,
-) -> Article | None:
-    return db.query(Article).join(Category).filter(Article.slug == slug).first()
+def get_article_by_slug(db: Session, *, slug: str):
+    article = db.query(Article).join(Category).filter(Article.slug == slug).first()
+
+    if not article:
+        return None
+
+    return {
+        "id": article.id,
+        "title": article.title,
+        "slug": article.slug,
+        "summary": article.summary,
+        "content": article.content,
+        "imageUrl": article.image_url,
+        "views": article.views,
+        "createdAt": article.created_at,
+        "category": {
+            "id": article.category.id,
+            "name": article.category.name,
+            "slug": article.category.slug,
+        },
+    }
 
 
 # ======================================================

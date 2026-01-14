@@ -1,7 +1,7 @@
 import {
   Category,
   PaginatedResponse,
-  ArticleWithTopic,
+  ArticleWithCategory,
   Article,
 } from "@/models/schema";
 
@@ -63,13 +63,13 @@ export const apiClient = {
         ).toString()}`
       : "";
 
-    return apiFetch<PaginatedResponse<ArticleWithTopic>>(
+    return apiFetch<PaginatedResponse<ArticleWithCategory>>(
       `${routes.articles.list}${query}`
     );
   },
 
   getArticleBySlug(slug: string) {
-    return apiFetch<ArticleWithTopic>(routes.articles.get(slug));
+    return apiFetch<ArticleWithCategory>(routes.articles.get(slug));
   },
 
   createArticle(data: Omit<Article, "id" | "views" | "createdAt">) {

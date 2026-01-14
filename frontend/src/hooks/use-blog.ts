@@ -7,7 +7,6 @@ import {
 
 import { apiClient } from "@/api/apiClient";
 import type { Article } from "@/models/schema";
-import { placeholderArticles } from "@/api/placeholderArticles";
 
 /* ======================================================
    TEMP DATA SWITCH
@@ -55,10 +54,6 @@ export function useArticles(
     queryKey: ["articles", { topicId, page, limit }],
 
     queryFn: async () => {
-      if (USE_TEMP_DATA) {
-        return placeholderArticles;
-      }
-
       return apiClient.getArticles({
         topicId,
         page,
@@ -84,12 +79,6 @@ export function useArticle(slug: string) {
     enabled: !!slug,
 
     queryFn: async () => {
-      if (USE_TEMP_DATA) {
-        return placeholderArticles.items.find(
-          (a) => a.slug === slug
-        );
-      }
-
       return apiClient.getArticleBySlug(slug);
     },
 
@@ -105,14 +94,7 @@ export function useCreateArticle() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (
-      data: Omit<Article, "id" | "views" | "createdAt">
-    ) => {
-      if (USE_TEMP_DATA) {
-        console.warn("Create article skipped (temp mode)");
-        return;
-      }
-
+    mutationFn: async (data: Omit<Article, "id" | "views" | "createdAt">) => {
       return apiClient.createArticle(data);
     },
 

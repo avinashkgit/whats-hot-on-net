@@ -1,10 +1,10 @@
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { ArticleWithTopic } from "@/models/schema";
+import { ArticleWithCategory } from "@/models/schema";
 
 interface ArticleCardProps {
-  article: ArticleWithTopic;
+  article: ArticleWithCategory;
   featured?: boolean;
 }
 

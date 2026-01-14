@@ -21,7 +21,7 @@ export interface Article {
 }
 
 // Article joined with topic
-export interface ArticleWithTopic extends Article {
+export interface ArticleWithCategory extends Article {
   category: Category;
 }
 
@@ -41,7 +41,7 @@ export interface InsertArticle
 
 export type CategoryResponse = Category;
 
-export type ArticleResponse = ArticleWithTopic;
+export type ArticleResponse = ArticleWithCategory;
 
 // Generic paginated response
 export interface PaginatedResponse<T> {
