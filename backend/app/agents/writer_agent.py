@@ -49,7 +49,7 @@ STRICT RULES:
 - No headings
 - No markdown
 - No explanations
-- Multiple paragraphs
+- Multiple paragraphs is must
 - Engaging but factual
 - NO extra text outside JSON
 
