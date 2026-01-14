@@ -50,10 +50,6 @@ export function Footer() {
                   Privacy Policy
                 </Link>
               </li>
-              <li className="pt-4 text-xs italic opacity-70">
-                All articles on this platform are AI-generated for demonstration
-                purposes.
-              </li>
             </ul>
           </div>
         </div>
