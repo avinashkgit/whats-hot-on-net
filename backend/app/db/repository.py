@@ -1,24 +1,130 @@
-from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from .models import Article
+from sqlalchemy import desc
+from uuid import UUID
 
-def save_article(db: Session, topic, title, body, image_url):
-    article = Article(
-        topic=topic,
-        title=title,
-        body=body,
-        image_url=image_url,
-        published_at=datetime.now(timezone.utc)
+from .models import Article, Topic
+from slugify import slugify
+
+
+# ======================================================
+# GET TOPICS (for Navigation / Filters)
+# ======================================================
+
+def get_topics(db: Session):
+    return (
+        db.query(Topic)
+        .order_by(Topic.name.asc())
+        .all()
     )
+
+
+# ======================================================
+# CREATE ARTICLE (Admin / CMS)
+# ======================================================
+
+def save_article(
+    db: Session,
+    *,
+    title: str,
+    slug: str,
+    summary: str,
+    content: str,
+    topic_id: UUID,
+    image_url: str | None = None,
+) -> Article:
+    article = Article(
+        title=title,
+        slug=slug,
+        summary=summary,
+        content=content,
+        topic_id=topic_id,
+        image_url=image_url,
+    )
+
     db.add(article)
     db.commit()
     db.refresh(article)
+
     return article
 
-def get_articles(db: Session, limit=10):
-    return (
+
+# ======================================================
+# GET ARTICLES (Paginated + Topic joined)
+# ======================================================
+
+def get_articles(
+    db: Session,
+    *,
+    topic_id: UUID | None = None,
+    page: int = 1,
+    limit: int = 10,
+):
+    query = (
         db.query(Article)
-        .order_by(Article.published_at.desc())
+        .join(Topic)
+        .order_by(desc(Article.created_at))
+    )
+
+    if topic_id:
+        query = query.filter(Article.topic_id == topic_id)
+
+    total = query.count()
+
+    items = (
+        query
+        .offset((page - 1) * limit)
         .limit(limit)
         .all()
     )
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "totalPages": (total + limit - 1) // limit,
+    }
+
+
+# ======================================================
+# GET SINGLE ARTICLE BY SLUG (Article Page)
+# ======================================================
+
+def get_article_by_slug(
+    db: Session,
+    *,
+    slug: str,
+) -> Article | None:
+    return (
+        db.query(Article)
+        .join(Topic)
+        .filter(Article.slug == slug)
+        .first()
+    )
+
+# ======================================================
+# GET OR CREATE TOPICS
+# ======================================================
+
+def get_or_create_topic(db, *, name: str) -> Topic:
+    slug = slugify(name)
+
+    topic = (
+        db.query(Topic)
+        .filter(Topic.slug == slug)
+        .first()
+    )
+
+    if topic:
+        return topic
+
+    topic = Topic(
+        name=name,
+        slug=slug,
+    )
+
+    db.add(topic)
+    db.commit()
+    db.refresh(topic)
+
+    return topic

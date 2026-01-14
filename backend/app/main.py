@@ -1,10 +1,16 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.db.database import SessionLocal
-from app.db.repository import get_articles
+from app.db.repository import (
+    get_topics,
+    get_articles,
+    get_article_by_slug,
+)
 
-app = FastAPI()
+app = FastAPI(title="HotOnNet API")
 
 # =========================
 # CORS CONFIGURATION
@@ -12,8 +18,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",          # local React dev
-        "https://hotonnet.com",  # deployed frontend (if any)
+        "http://localhost:5173",   # local React dev
+        "https://hotonnet.com",    # production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -31,8 +37,35 @@ def get_db():
         db.close()
 
 # =========================
-# Routes
+# ROUTES REQUIRED BY UI
 # =========================
+
+# --- Topics (Navigation / Filters)
+@app.get("/topics")
+def topics(db: Session = Depends(get_db)):
+    return get_topics(db)
+
+
+# --- Articles list (Home + Pagination + Topic filter)
 @app.get("/articles")
-def articles(db=Depends(get_db)):
-    return get_articles(db)
+def articles(
+    topicId: UUID | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    return get_articles(
+        db,
+        topic_id=topicId,
+        page=page,
+        limit=limit,
+    )
+
+
+# --- Single article (Article page)
+@app.get("/articles/{slug}")
+def article(slug: str, db: Session = Depends(get_db)):
+    article = get_article_by_slug(db, slug=slug)
+    if not article:
+        return {"message": "Article not found"}
+    return article
