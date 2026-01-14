@@ -15,4 +15,4 @@ lxml_html_clean
 googlenewsdecoder
 google-generativeai
 newspaper4k
-slugify
+python-slugify
