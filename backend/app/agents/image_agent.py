@@ -11,15 +11,20 @@ import certifi
 
 load_dotenv()
 
-# xAI Image Generation Endpoint (stable as of Jan 2026)
-XAI_URL = "https://api.x.ai/v1/images/generations"
+# ── Hugging Face primary (Juggernaut-XL-v9) ─────────────────────────────────
+HF_URL = "https://api-inference.huggingface.co/models/RunDiffusion/Juggernaut-XL-v9"
+HF_HEADERS = {
+    "Authorization": f"Bearer {os.environ.get('HF_TOKEN')}",
+    "Content-Type": "application/json"
+}
 
+# ── xAI Grok fallback (Aurora-based) ────────────────────────────────────────
+XAI_URL = "https://api.x.ai/v1/images/generations"
 XAI_HEADERS = {
-    "Authorization": f"Bearer {os.environ['XAI_API_KEY']}",
+    "Authorization": f"Bearer {os.environ.get('XAI_API_KEY')}",
     "Content-Type": "application/json",
 }
 
-# Cloudinary configuration
 cloudinary.config(
     cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
     api_key=os.environ["CLOUDINARY_API_KEY"],
@@ -28,102 +33,141 @@ cloudinary.config(
 )
 
 
-class XaiImageAgent:
-    def run(self, topic: str, retries: int = 2) -> str:
+class ImageAgent:
+    def run(self, topic: str) -> str:
         """
-        Generate a realistic news-style environmental/documentary photo using xAI Aurora,
-        process lightly, upload to Cloudinary and return the permanent URL.
+        Generate realistic news/documentary photo.
+        Primary: Hugging Face Juggernaut-XL-v9
+        Fallback: xAI Grok (grok-2-image / Aurora)
+        Returns permanent Cloudinary URL.
         """
-        # Ultra-realistic documentary prompt - optimized for wide scenes & zero humans
-        positive_prompt = f"""
-        Wide establishing shot, long environmental scene, pure breaking news / documentary photograph of {topic}, 
-        focus exclusively on objects, setting, atmosphere, aftermath, scattered items, equipment, displays, 
-        ingredients, stadium setup, stage elements — story told through environment only
+        # Strong documentary prompt optimized for both engines
+        base_prompt = f"""
+        Wide establishing shot, genuine breaking news documentary photograph of {topic},
+        focus on environment, objects, setting, aftermath — scattered items, equipment, displays,
+        stadium/stage setup, ingredients — story told through context only, no people, humans,
+        figures, faces, crowds or any human presence whatsoever
 
-        Shot on location Canon EOS R5 Mark II or Sony A1 II, 24-28mm wide-angle lens, f/8–f/11 deep DoF, 
-        tack-sharp across entire frame, natural perspective with mild wide-angle character
+        Shot on Canon EOS R5 Mark II, 24-28mm wide lens, f/8-f/11 deep depth of field,
+        sharp across frame, natural available light, authentic shadows, true colors,
+        subtle organic grain, RAW photorealistic detail, maximum documentary realism
 
-        Strictly available light, authentic time-of-day lighting, real shadows/highlights, imperfect color balance, 
-        subtle organic grain like scanned film, maximum photorealistic detail, RAW look
-
-        ABSOLUTELY NO: people, humans, figures, silhouettes, bodies, faces, crowds, any human presence whatsoever, 
-        text, watermark, logo, signature, plastic surfaces, perfect symmetry, glamour/studio lighting, 
-        artificial bokeh, HDR, over-sharpening, AI smoothness, beauty filters, close-ups, portraits — 
-        100% environment/objects as sole subject, maximum documentary realism
+        STRICTLY NO: text, watermark, logo, signature, plastic, symmetry, glamour lighting,
+        artificial bokeh, HDR, over-sharpening, AI smoothness, close-ups, portraits
         """
 
-        payload = {
-            "model": "grok-2-image-1212",  # Current stable & versioned model name (Jan 2026)
-            "prompt": positive_prompt.strip(),
-            "n": 1,
-            "response_format": "url",  # returns temporary URL (expires ~1h)
-        }
+        negative_prompt = """
+        blurry, low quality, deformed, extra limbs, bad anatomy, watermark, text, logo,
+        cartoon, 3d render, painting, illustration, plastic skin, uncanny valley,
+        overexposed, underexposed, grainy, oversaturated, humans, people, faces, crowds
+        """
 
-        attempt = 0
-        while attempt < retries:
-            try:
+        # ── PRIMARY: Hugging Face Juggernaut ────────────────────────────────────
+        print("Trying Hugging Face Juggernaut XL...")
+        try:
+            payload = {
+                "inputs": base_prompt,
+                "negative_prompt": negative_prompt,
+                "parameters": {
+                    "num_inference_steps": 35,
+                    "guidance_scale": 6.0,
+                    "width": 1024,
+                    "height": 1024,
+                    "seed": int(time.time() * 1000) % 2147483647
+                }
+            }
+
+            for attempt in range(3):  # retry on warming / rate-limit
                 response = requests.post(
-                    XAI_URL,
-                    headers=XAI_HEADERS,
+                    HF_URL,
+                    headers=HF_HEADERS,
                     json=payload,
-                    timeout=120,
+                    timeout=180,
                     verify=certifi.where(),
                 )
-                response.raise_for_status()
-                break
 
-            except requests.HTTPError as e:
-                if response.status_code in (429, 500, 502, 503, 504):
-                    wait = 10 * (2 ** attempt)  # exponential backoff
-                    print(f"xAI rate limit/server error → retry in {wait}s (attempt {attempt+1}/{retries})")
-                    time.sleep(wait)
-                    attempt += 1
+                if response.status_code == 200 and "image" in response.headers.get("Content-Type", ""):
+                    image = Image.open(BytesIO(response.content)).convert("RGB")
+                    print("HF Juggernaut succeeded!")
+                    return self._process_and_upload(image, topic, "hf-juggernaut")
+
+                elif "estimated_time" in response.text.lower():
+                    try:
+                        wait = int(response.json().get("estimated_time", 15)) + 5
+                        print(f"HF model warming up → waiting {wait}s (attempt {attempt+1}/3)...")
+                        time.sleep(wait)
+                        continue
+                    except:
+                        pass
+
+                elif response.status_code in (429, 500, 502, 503, 504):
+                    time.sleep(10 * (attempt + 1))
                     continue
-                raise RuntimeError(f"xAI API error {response.status_code}: {response.text}") from e
 
-            except requests.RequestException as e:
-                raise RuntimeError(f"xAI request failed: {str(e)}") from e
+                else:
+                    print(f"HF error {response.status_code}: {response.text[:200]}")
+                    break  # non-retryable → fallback
 
-        else:
-            raise RuntimeError("Max retries exceeded for xAI image generation")
-
-        # Parse temporary image URL
-        try:
-            data = response.json()
-            image_url = data["data"][0]["url"]
         except Exception as e:
-            raise RuntimeError("Failed to extract image URL from xAI response") from e
+            print(f"HF failed: {e.__class__.__name__} → falling back to xAI Grok...")
 
-        # Download
-        img_response = requests.get(image_url, timeout=60)
-        img_response.raise_for_status()
+        # ── FALLBACK: xAI Grok (Aurora) ─────────────────────────────────────────
+        print("Falling back to xAI Grok image generation...")
+        try:
+            xai_payload = {
+                "model": "grok-2-image",          # Official stable name per xAI docs
+                "prompt": base_prompt.strip(),
+                "n": 1,
+                "response_format": "url"          # temporary URL
+            }
 
-        # Process
-        image = Image.open(BytesIO(img_response.content)).convert("RGB")
+            response = requests.post(
+                XAI_URL,
+                headers=XAI_HEADERS,
+                json=xai_payload,
+                timeout=90,
+                verify=certifi.where(),
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            temp_url = data["data"][0]["url"]
+
+            # Download temp image
+            img_resp = requests.get(temp_url, timeout=45)
+            img_resp.raise_for_status()
+
+            image = Image.open(BytesIO(img_resp.content)).convert("RGB")
+            print("xAI Grok succeeded!")
+            return self._process_and_upload(image, topic, "xai-grok")
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Critical failure: Both HF Juggernaut and xAI Grok failed!\n"
+                f"HF error: {e}"
+            ) from e
+
+    def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
+        """Light post-process + Cloudinary upload"""
         enhancer = ImageEnhance.Sharpness(image)
-        image = enhancer.enhance(1.08)  # subtle, natural look
+        image = enhancer.enhance(1.08)  # subtle realism boost
 
-        # Save as high-quality JPEG (better compression & compatibility for news photos)
         buffer = BytesIO()
         image.save(buffer, format="JPEG", quality=93, optimize=True, progressive=True)
         buffer.seek(0)
 
-        # Upload with better naming & tags
-        try:
-            safe_topic = topic.lower().replace(" ", "_")[:50]  # truncate for safety
-            public_id = f"news_{safe_topic}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        safe_topic = topic.lower().replace(" ", "_")[:48]
+        public_id = f"news_{safe_topic}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{provider}"
 
-            result = cloudinary.uploader.upload(
-                buffer,
-                folder="ai_news_images",
-                public_id=public_id,
-                overwrite=False,
-                resource_type="image",
-                format="jpg",
-                quality="auto:good",
-                tags=["ai-generated", "photojournalism", "xai-aurora", "documentary"],
-            )
-            return result["secure_url"]
+        result = cloudinary.uploader.upload(
+            buffer,
+            folder="ai_news_images",
+            public_id=public_id,
+            overwrite=False,
+            resource_type="image",
+            format="jpg",
+            quality="auto:good",
+            tags=["ai-generated", "photojournalism", provider, "documentary"],
+        )
 
-        except Exception as e:
-            raise RuntimeError(f"Cloudinary upload failed: {str(e)}") from e
+        return result["secure_url"]
