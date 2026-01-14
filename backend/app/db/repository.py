@@ -23,6 +23,7 @@ def get_categories(db: Session):
 def save_article(
     db: Session,
     *,
+    topic: str,
     title: str,
     slug: str,
     summary: str,
@@ -31,6 +32,7 @@ def save_article(
     image_url: str | None = None,
 ):
     article = Article(
+        topic=topic,
         title=title,
         slug=slug,
         summary=summary,
@@ -77,6 +79,7 @@ def get_articles(
         "items": [
             {
                 "id": a.id,
+                "topic": a.topic,
                 "title": a.title,
                 "slug": a.slug,
                 "summary": a.summary,
@@ -117,6 +120,7 @@ def get_article_by_slug(db: Session, *, slug: str):
 
     return {
         "id": article.id,
+        "topic": article.topic,
         "title": article.title,
         "slug": article.slug,
         "summary": article.summary,

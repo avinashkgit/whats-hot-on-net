@@ -10,6 +10,7 @@ export interface Category {
 
 export interface Article {
   id: string;
+  topic: string;
   title: string;
   slug: string;
   content: string;       // HTML or markdown

@@ -26,7 +26,7 @@ class Article(Base):
         primary_key=True,
         server_default=text("gen_random_uuid()"),
     )
-
+    topic = Column(Text, nullable=False, unique=True)
     title = Column(Text, nullable=False)
     slug = Column(Text, nullable=False, unique=True)
     summary = Column(Text, nullable=False)

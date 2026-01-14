@@ -68,6 +68,7 @@ def run():
         # =========================
         save_article(
             db=db,
+            topic=topic,
             title=title,
             slug=slug,
             summary=summary,

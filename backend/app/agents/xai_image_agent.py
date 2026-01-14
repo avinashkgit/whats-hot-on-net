@@ -15,7 +15,7 @@ load_dotenv()
 XAI_URL = "https://api.x.ai/v1/images/generations"
 XAI_HEADERS = {
     "Authorization": f"Bearer {os.environ['XAI_API_KEY']}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
 
 cloudinary.config(
@@ -30,22 +30,30 @@ class XaiImageAgent:
     def run(self, topic: str):
         # Strong prompt optimized for editorial/news realism (Grok models love detailed prompts)
         positive_prompt = f"""
-        Editorial news photograph of {topic}, 
-        highly detailed documentary photography, candid real moment captured in the field, 
-        natural outdoor/indoor lighting, soft realistic shadows, true-to-life colors and skin tones, 
-        sharp focus, professional photojournalism style, shot on professional camera like Canon EOS R5, 
-        50mm prime lens at f/2.8, ultra realistic, photorealistic, RAW quality, 8k detail, 
-        no text overlays, no watermark, no logo, no signature, no artificial look
+        Genuine breaking news photograph, {topic}, real world photojournalism, caught in the moment, 
+        candid, unposed, imperfect human moment, observed not directed
+
+        Shot on location with Canon EOS R5 Mark II / Sony A1 II, 50mm f/1.4 GM or 35mm f/1.8, 
+        f/2.2–f/2.8, razor sharp subject focus, natural imperfect bokeh, visible lens character
+
+        Available light only, realistic harsh or soft field lighting, authentic shadows & highlights, 
+        true color balance, slightly imperfect white balance, realistic skin texture with pores & imperfections
+
+        RAW quality, maximum realistic detail, subtle organic grain, no digital smoothness
+
+        STRICTLY NO: text, watermark, logo, signature, plastic skin, perfect symmetry, glamour lighting, 
+        studio look, fashion pose, artificial bokeh, over-sharpening, HDR look, AI smoothness, 
+        beauty retouching, idealized faces — maximum documentary realism
         """
 
         # Optional: negative prompt isn't directly supported, but you can include it in the prompt text
         # Grok usually respects "avoid: blurry, deformed, cartoon..." naturally
 
         payload = {
-            "model": "grok-2-image",          # Current best image model (Flux/Aurora powered)
+            "model": "grok-2-image",  # Current best image model (Flux/Aurora powered)
             "prompt": positive_prompt,
-            "n": 1,                            # Number of images (1-10 allowed)
-            "response_format": "url"           # Or "b64_json" for base64 data
+            "n": 1,  # Number of images (1-10 allowed)
+            "response_format": "url",  # Or "b64_json" for base64 data
         }
 
         response = requests.post(
@@ -58,9 +66,7 @@ class XaiImageAgent:
 
         if response.status_code != 200:
             error_text = response.text
-            raise RuntimeError(
-                f"xAI API error {response.status_code}: {error_text}"
-            )
+            raise RuntimeError(f"xAI API error {response.status_code}: {error_text}")
 
         try:
             data = response.json()
@@ -81,6 +87,7 @@ class XaiImageAgent:
 
         # Optional subtle post-processing (sharpening)
         from PIL import ImageEnhance
+
         enhancer = ImageEnhance.Sharpness(image)
         image = enhancer.enhance(1.12)
 
@@ -95,7 +102,7 @@ class XaiImageAgent:
             public_id=f"article_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
             overwrite=False,
             format="png",
-            quality="auto:good"
+            quality="auto:good",
         )
 
         return result["secure_url"]
