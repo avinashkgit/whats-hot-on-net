@@ -49,14 +49,14 @@ def topics(db: Session = Depends(get_db)):
 # --- Articles list (Home + Pagination + Topic filter)
 @app.get("/articles")
 def articles(
-    topicId: UUID | None = Query(default=None),
+    categoryId: UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
     return get_articles(
         db,
-        topic_id=topicId,
+        category_id=categoryId,
         page=page,
         limit=limit,
     )
