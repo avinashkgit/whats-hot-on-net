@@ -9,13 +9,6 @@ import ArticleDetail from "@/pages/ArticleDetail";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import NotFound from "@/pages/not-found";
 
-// Wrapper for filtering home by topic
-function TopicPage() {
-  const [match, params] = useRoute("/topic/:id");
-  if (!match) return <NotFound />;
-  return <Home topicId={params.id} />;
-}
-
 function Router() {
   return (
     <Switch>
