@@ -5,10 +5,11 @@ from agents.search_agent import search_news
 from agents.extractor_pool import extract_articles_parallel
 from agents.context_builder_agent import build_context, build_fallback_context
 from agents.writer_agent import WriterAgent
-# from agents.image_agent import ImageAgent
+from agents.image_agent import ImageAgent
 
 from app.db.database import SessionLocal
 from app.db.repository import save_article, get_or_create_category
+from app.agents.xai_image_agent import XaiImageAgent
 
 
 def run():
@@ -56,6 +57,13 @@ def run():
         category = get_or_create_category(db, name=category_name)
 
         # =========================
+        # Generate image
+        # =========================
+        # image_url = ImageAgent().run(topic)
+        image_url = XaiImageAgent().run(topic)
+
+
+        # =========================
         # 6️⃣ Save article
         # =========================
         save_article(
@@ -65,7 +73,7 @@ def run():
             summary=summary,
             content=content,
             category_id=category.id,
-            image_url=None,
+            image_url=image_url,
         )
 
         print(
