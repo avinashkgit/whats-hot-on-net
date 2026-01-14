@@ -5,7 +5,6 @@ from agents.context_builder_agent import build_context
 from agents.writer_agent import WriterAgent
 from agents.image_agent import ImageAgent
 from agents.gemini_image_generator import GeminiImageAgent
-from agents.xai_image_agent import XaiImageAgent
 from db.database import SessionLocal
 
 
@@ -59,12 +58,14 @@ def test_image_agent(topic):
     assert isinstance(image_url, str)
     assert image_url.startswith("http")
 
+
 def test_xai_image_agent(topic):
     print("\n=== Testing ImageAgent ===")
     image_url = XaiImageAgent().run(topic)
     print("Image URL:", image_url)
     assert isinstance(image_url, str)
     assert image_url.startswith("http")
+
 
 def test_gemini_image_agent(topic):
     print("\n=== Testing ImageAgent ===")

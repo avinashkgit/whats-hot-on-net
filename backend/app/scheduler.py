@@ -9,7 +9,6 @@ from agents.image_agent import ImageAgent
 
 from app.db.database import SessionLocal
 from app.db.repository import save_article, get_or_create_category
-from app.agents.xai_image_agent import XaiImageAgent
 
 
 def run():
@@ -48,7 +47,7 @@ def run():
         title = article["title"]
         content = article["body"]
         summary = article.get("summary") or content[:200]
-        category_name = article["category"]   # ✅ from WriterAgent
+        category_name = article["category"]  # ✅ from WriterAgent
         slug = slugify(title)
 
         # =========================
@@ -59,9 +58,7 @@ def run():
         # =========================
         # Generate image
         # =========================
-        # image_url = ImageAgent().run(topic)
-        image_url = XaiImageAgent().run(topic)
-
+        image_url = ImageAgent().run(topic)
 
         # =========================
         # 6️⃣ Save article
@@ -77,9 +74,7 @@ def run():
             image_url=image_url,
         )
 
-        print(
-            f"✅ Article saved | topic='{topic}' | category='{category_name}'"
-        )
+        print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
 
     finally:
         db.close()
