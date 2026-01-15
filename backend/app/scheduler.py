@@ -77,9 +77,10 @@ def run():
             category_id=category.id,
             image_url=image_url,
         )
-        XPosterAgent().post_article(
+        XPosterAgent().post_article_with_image(
             title=title,
             slug=slug,
+            img=image_url
         )
 
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
