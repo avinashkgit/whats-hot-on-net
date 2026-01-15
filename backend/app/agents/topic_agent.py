@@ -1,4 +1,3 @@
-from ast import Dict
 import feedparser
 import random
 import re
@@ -6,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Article
 from .google_news_decoder import decode_google_news_url
-
 
 REGIONAL_FEEDS = [
     "https://news.google.com/rss?hl=en&gl=US&ceid=US:en",
@@ -21,8 +19,8 @@ class TopicAgent:
     def __init__(self, db: Session):
         self.db = db
 
-    def run(self) -> str:
-        all_topics: list[Dict] = []
+    def run(self) -> dict:
+        all_topics: list[dict] = []
 
         for feed_url in REGIONAL_FEEDS:
             feed = feedparser.parse(feed_url)
@@ -34,13 +32,12 @@ class TopicAgent:
                 title = re.sub(r"\s+-\s+.*$", "", title)
                 title = title.strip(" -–:")
 
-                # Avoid very weak topics
+                # Avoid weak topics
                 if len(title.split()) < 4:
                     continue
 
                 raw_link = entry.link
                 decoded_link = decode_google_news_url(raw_link)
-
                 final_link = decoded_link or raw_link
 
                 all_topics.append(
@@ -51,7 +48,12 @@ class TopicAgent:
                     }
                 )
 
-                # all_topics.append(title)
+        if not all_topics:
+            return {
+                "title": "Global geopolitical and economic developments",
+                "link": "",
+                "summary": "",
+            }
 
         random.shuffle(all_topics)
 
@@ -59,11 +61,11 @@ class TopicAgent:
         for topic in all_topics:
             exists = (
                 self.db.query(Article)
-                .filter(Article.topic == topic.title)
+                .filter(Article.topic == topic["title"])
                 .first()
             )
             if not exists:
                 return topic
 
-        # Fallback if everything already exists
+        # 🔁 Fallback if all topics already exist
         return random.choice(all_topics)

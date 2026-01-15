@@ -18,31 +18,34 @@ def run():
         # =========================
         # 1️⃣ Pick TOPIC (idea)
         # =========================
-        topic = TopicAgent(db).run()
-        print("Topic idea:", topic)
+        topic_data = TopicAgent(db).run()
+
+        topic = topic_data["title"]
+        source_link = topic_data["link"]
+        print("Topic idea:", topic_data)
 
         # =========================
         # 2️⃣ Discover links
         # =========================
-        links = search_news(topic.title, limit=5)
+        links = search_news(topic, limit=5)
         if not links:
             raise RuntimeError("No news links found")
 
         # =========================
         # 3️⃣ Extract context
         # =========================
-        articles = extract_articles_parallel(topic.link, max_workers=5)
+        articles = extract_articles_parallel(source_link, max_workers=5)
 
         if articles:
             context = build_context(articles)
         else:
             print("⚠️ No full articles extracted. Falling back to headlines.")
-            context = build_fallback_context(topic.title)
+            context = build_fallback_context(topic)
 
         # =========================
         # 4️⃣ Write article + CATEGORY
         # =========================
-        article = WriterAgent().run(topic.title, context)
+        article = WriterAgent().run(topic, context)
 
         title = article["title"]
         content = article["body"]
