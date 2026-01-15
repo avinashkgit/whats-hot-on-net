@@ -16,3 +16,4 @@ googlenewsdecoder
 google-generativeai
 newspaper4k
 python-slugify
+huggingface_hub

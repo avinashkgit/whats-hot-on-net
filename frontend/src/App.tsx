@@ -8,13 +8,12 @@ import Home from "@/pages/Home";
 import ArticleDetail from "@/pages/ArticleDetail";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import NotFound from "@/pages/not-found";
+import { ScrollToTop } from "./ScrollToTop";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/">
-        {() => <Home />}
-      </Route>
+      <Route path="/">{() => <Home />}</Route>
 
       <Route path="/category/:slug">
         {(params) => <Home category={params.slug} />}
@@ -33,6 +32,7 @@ function App() {
       <ThemeProvider attribute="class" defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <ScrollToTop />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
