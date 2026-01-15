@@ -65,7 +65,6 @@ export default function ArticleDetail() {
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(pageUrl);
-    alert("Link copied to clipboard");
   };
 
   /* =========================
