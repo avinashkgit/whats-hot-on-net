@@ -5,6 +5,7 @@ from agents.context_builder_agent import build_context
 from agents.writer_agent import WriterAgent
 from agents.image_agent import ImageAgent
 from agents.gemini_image_generator import GeminiImageAgent
+from agents.x_poster_agent import XPosterAgent
 from db.database import SessionLocal
 
 
@@ -66,13 +67,18 @@ def test_gemini_image_agent(topic):
     assert isinstance(image_url, str)
     assert image_url.startswith("http")
 
+def test_x_poster_agent():
+    print("\n=== Testing ImageAgent ===")
+    tweet_id = XPosterAgent().post_article("Harvard Falls in Global University Rankings as Chinese Institutions Rise", "harvard-falls-in-global-university-rankings-as-chinese-institutions-rise")
+    print("✅ Tweet posted | tweet_id =", tweet_id)
+    return tweet_id
 
 def run_all_tests():
     print("\n==============================")
     print(" RUNNING AGENT PIPELINE TESTS ")
     print("==============================")
-    db = SessionLocal()
-    topic = TopicAgent().run()
+    # db = SessionLocal()
+    # topic = TopicAgent().run()
 
     # links = test_search_agent(topic)
     # articles = test_extractor_agent(links)
@@ -81,7 +87,8 @@ def run_all_tests():
     # image_url = test_image_agent("The rise of renewable energy in rural communities")
     # image_url = test_xai_image_agent("The rise of renewable energy in rural communities")
     # image_url = test_gemini_image_agent("The rise of renewable energy in rural communities")
-    print("====:", topic)
+    data = test_x_poster_agent()
+    print("====:", data)
     print("\n✅ ALL AGENT TESTS PASSED SUCCESSFULLY\n")
 
 

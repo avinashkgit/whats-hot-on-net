@@ -88,7 +88,7 @@ def run():
         # =========================
         # 8️⃣ Download image and post to X
         # =========================
-        tweet_id = XPosterAgent().post_article_with_image_url(title, slug, image_url)
+        tweet_id = XPosterAgent().post_article(title, slug)
         print("✅ Tweet posted | tweet_id =", tweet_id)
 
     finally:
