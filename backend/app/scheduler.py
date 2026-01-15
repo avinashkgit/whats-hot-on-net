@@ -21,7 +21,7 @@ def run():
         topic_data = TopicAgent(db).run()
 
         topic = topic_data["title"]
-        source_link = topic_data["link"]
+
         print("Topic idea:", topic_data)
 
         # =========================
@@ -34,13 +34,13 @@ def run():
         # =========================
         # 3️⃣ Extract context
         # =========================
-        articles = extract_articles_parallel(topic, max_workers=5)
+        articles = extract_articles_parallel(links, max_workers=5)
 
         if articles:
             context = build_context(articles)
         else:
             print("⚠️ No full articles extracted. Falling back to headlines.")
-            context = build_fallback_context(topic)
+            context = build_fallback_context(links)
 
         # =========================
         # 4️⃣ Write article + CATEGORY
@@ -50,7 +50,7 @@ def run():
         title = article["title"]
         content = article["body"]
         summary = article.get("summary") or content[:200]
-        category_name = article["category"]  # ✅ from WriterAgent
+        category_name = article["category"]
         slug = slugify(title)
 
         # =========================
@@ -59,12 +59,12 @@ def run():
         category = get_or_create_category(db, name=category_name)
 
         # =========================
-        # Generate image
+        # 6️⃣ Generate image
         # =========================
         image_url = ImageAgent().run(topic)
 
         # =========================
-        # 6️⃣ Save article
+        # 7️⃣ Save article
         # =========================
         save_article(
             db=db,
