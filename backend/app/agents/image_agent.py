@@ -7,8 +7,8 @@ import cloudinary.uploader
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import certifi
-from huggingface_hub import InferenceClient, HfHubHTTPError, InferenceTimeoutError  # ← new import!
-
+from huggingface_hub import InferenceClient, InferenceTimeoutError
+from huggingface_hub.errors import HfHubHTTPError   # ← this is the correct location
 load_dotenv()
 
 # Hugging Face Inference Client (new unified way - Jan 2026)
