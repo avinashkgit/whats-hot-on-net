@@ -68,7 +68,7 @@ def run():
         # =========================
         save_article(
             db=db,
-            topic=topic.title,
+            topic=topic,
             title=title,
             slug=slug,
             summary=summary,
@@ -77,7 +77,7 @@ def run():
             image_url=image_url,
         )
 
-        print(f"✅ Article saved | topic='{topic.title}' | category='{category_name}'")
+        print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
 
     finally:
         db.close()
