@@ -53,8 +53,7 @@ WRITING RULES:
 - NO bullet points
 - NO markdown
 - NO explanations
-- Body must be between 800 and 1000 words
-- If unable to reach 800 words from context, expand logically WITHOUT adding new facts
+- Body must be between 500 and 800 words
 - Rewrtie the title in your own words
 
 CATEGORY RULE:
