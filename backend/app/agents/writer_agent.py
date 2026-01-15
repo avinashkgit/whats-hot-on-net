@@ -55,6 +55,7 @@ WRITING RULES:
 - NO explanations
 - Body must be between 800 and 1000 words
 - If unable to reach 800 words from context, expand logically WITHOUT adding new facts
+- Rewrtie the title in your own words
 
 CATEGORY RULE:
 Choose EXACTLY ONE category from this list:
