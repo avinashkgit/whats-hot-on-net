@@ -1,9 +1,12 @@
+from ast import Dict
 import feedparser
 import random
 import re
 from sqlalchemy.orm import Session
 
 from app.db.models import Article
+from .google_news_decoder import decode_google_news_url
+
 
 REGIONAL_FEEDS = [
     "https://news.google.com/rss?hl=en&gl=US&ceid=US:en",
@@ -19,7 +22,7 @@ class TopicAgent:
         self.db = db
 
     def run(self) -> str:
-        all_topics: list[str] = []
+        all_topics: list[Dict] = []
 
         for feed_url in REGIONAL_FEEDS:
             feed = feedparser.parse(feed_url)
@@ -35,10 +38,20 @@ class TopicAgent:
                 if len(title.split()) < 4:
                     continue
 
-                all_topics.append(title)
+                raw_link = entry.link
+                decoded_link = decode_google_news_url(raw_link)
 
-        if not all_topics:
-            return "Global geopolitical and economic developments"
+                final_link = decoded_link or raw_link
+
+                all_topics.append(
+                    {
+                        "title": title,
+                        "link": final_link,
+                        "summary": getattr(entry, "summary", ""),
+                    }
+                )
+
+                # all_topics.append(title)
 
         random.shuffle(all_topics)
 
@@ -46,7 +59,7 @@ class TopicAgent:
         for topic in all_topics:
             exists = (
                 self.db.query(Article)
-                .filter(Article.topic == topic)
+                .filter(Article.topic == topic.title)
                 .first()
             )
             if not exists:

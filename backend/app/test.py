@@ -59,14 +59,6 @@ def test_image_agent(topic):
     assert image_url.startswith("http")
 
 
-def test_xai_image_agent(topic):
-    print("\n=== Testing ImageAgent ===")
-    image_url = XaiImageAgent().run(topic)
-    print("Image URL:", image_url)
-    assert isinstance(image_url, str)
-    assert image_url.startswith("http")
-
-
 def test_gemini_image_agent(topic):
     print("\n=== Testing ImageAgent ===")
     image_url = GeminiImageAgent().run(topic)

@@ -24,25 +24,25 @@ def run():
         # =========================
         # 2️⃣ Discover links
         # =========================
-        links = search_news(topic, limit=5)
+        links = search_news(topic.title, limit=5)
         if not links:
             raise RuntimeError("No news links found")
 
         # =========================
         # 3️⃣ Extract context
         # =========================
-        articles = extract_articles_parallel(links, max_workers=5)
+        articles = extract_articles_parallel(topic.link, max_workers=5)
 
         if articles:
             context = build_context(articles)
         else:
             print("⚠️ No full articles extracted. Falling back to headlines.")
-            context = build_fallback_context(links)
+            context = build_fallback_context(topic.title)
 
         # =========================
         # 4️⃣ Write article + CATEGORY
         # =========================
-        article = WriterAgent().run(topic, context)
+        article = WriterAgent().run(topic.title, context)
 
         title = article["title"]
         content = article["body"]
@@ -65,7 +65,7 @@ def run():
         # =========================
         save_article(
             db=db,
-            topic=topic,
+            topic=topic.title,
             title=title,
             slug=slug,
             summary=summary,
@@ -74,7 +74,7 @@ def run():
             image_url=image_url,
         )
 
-        print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
+        print(f"✅ Article saved | topic='{topic.title}' | category='{category_name}'")
 
     finally:
         db.close()
