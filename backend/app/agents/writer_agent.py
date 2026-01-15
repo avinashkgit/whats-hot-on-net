@@ -53,7 +53,7 @@ WRITING RULES:
 - NO bullet points
 - NO markdown
 - NO explanations
-- Body must be between 500 and 800 words
+- Body must be between 500 and 700 words
 - Rewrtie the title in your own words
 
 CATEGORY RULE:
