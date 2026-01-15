@@ -34,7 +34,7 @@ def run():
         # =========================
         # 3️⃣ Extract context
         # =========================
-        articles = extract_articles_parallel(source_link, max_workers=5)
+        articles = extract_articles_parallel(topic, max_workers=5)
 
         if articles:
             context = build_context(articles)
