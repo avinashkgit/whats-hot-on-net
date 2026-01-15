@@ -43,17 +43,20 @@ class ImageAgent:
         """
         # Optimized prompt for documentary/news realism (works great on FLUX)
         prompt = f"""
-        Wide establishing shot, genuine breaking news documentary photograph of {topic},
-        focus exclusively on environment, objects, setting, aftermath — scattered items, equipment,
-        stadium setup, stage elements — story told through context only, no people, humans,
-        figures, faces, crowds or any human presence whatsoever
+        Wide establishing shot, authentic breaking news documentary photography of {topic}, 
+        the main subject prominently placed dead center in the frame, perfectly centered composition, subject at the exact center of the image, symmetrical balanced framing, central vanishing point perspective, strong central focus on the key element of the scene
 
-        Shot on Canon EOS R5 Mark II, 24-28mm wide lens, f/8-f/11 deep DoF, sharp across frame,
-        natural available light, authentic shadows/highlights, true colors, subtle organic grain,
-        RAW photorealistic detail, maximum documentary realism
+        environmental storytelling through context — aftermath, scattered objects, debris, abandoned equipment, stadium/arena/stage setup, architectural elements, traces of recent activity, large-scale scene with possible tiny distant people as incidental background figures only for scale
 
-        STRICTLY NO: text, watermark, logo, signature, plastic, symmetry, glamour lighting,
-        artificial bokeh, HDR, over-sharpening, AI smoothness, close-ups, portraits
+        People (if present) must appear only as very small, unrecognizable distant specks far in the background — no visible faces, no detailed figures, no foreground or midground humans, purely environmental scale elements like in real wide news footage
+
+        Captured on Canon EOS R5 Mark II with 16-35mm f/2.8 wide zoom at 24-28mm, f/8–f/11 deep depth of field for maximum edge-to-edge sharpness, hyper-detailed RAW quality, natural available light only, realistic organic shadows and highlights, accurate Canon color science, subtle authentic film-like grain, maximum journalistic realism
+
+        Photorealistic, award-winning press photography style, Reuters / AP / Getty Images wide-shot documentary aesthetic, unposed, unpolished, frozen moment of real event coverage, centered symmetrical composition for dramatic emphasis
+
+        STRICTLY FORBIDDEN: off-center subject, rule of thirds composition, close-ups, medium shots, portraits, headshots, any clearly visible faces, detailed human figures in foreground or midground, glamour lighting, artificial bokeh, creamy background blur, HDR over-processing, oversaturated colors, plastic look, AI smoothness, digital artifacts, text, watermarks, logos, signatures, asymmetrical framing, vignette
+
+        --style raw --v 6 --stylize 150-300 --q 2 --ar 16:9   (or 3:2 for more classic press feel; lower stylize helps enforce strict centering)
         """
 
         negative_prompt = """
