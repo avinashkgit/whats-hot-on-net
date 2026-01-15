@@ -84,7 +84,7 @@ class ImageAgent:
         print("Falling back to xAI Grok...")
         try:
             xai_payload = {
-                "model": "grok-2-image",  # or "grok-2-image-1212" if you prefer versioned
+                "model": "grok-2-image-1212",  # or "grok-2-image-1212" if you prefer versioned
                 "prompt": prompt,
                 "n": 1,
                 "response_format": "url"
