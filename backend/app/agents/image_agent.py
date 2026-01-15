@@ -43,20 +43,7 @@ class ImageAgent:
         """
         # Optimized prompt for documentary/news realism (works great on FLUX)
         prompt = f"""
-        Wide establishing shot, authentic breaking news documentary photography of {topic}, 
-        the main subject prominently placed dead center in the frame, perfectly centered composition, subject at the exact center of the image, symmetrical balanced framing, central vanishing point perspective, strong central focus on the key element of the scene
-
-        environmental storytelling through context — aftermath, scattered objects, debris, abandoned equipment, stadium/arena/stage setup, architectural elements, traces of recent activity, large-scale scene with possible tiny distant people as incidental background figures only for scale
-
-        People (if present) must appear only as very small, unrecognizable distant specks far in the background — no visible faces, no detailed figures, no foreground or midground humans, purely environmental scale elements like in real wide news footage
-
-        Captured on Canon EOS R5 Mark II with 16-35mm f/2.8 wide zoom at 24-28mm, f/8–f/11 deep depth of field for maximum edge-to-edge sharpness, hyper-detailed RAW quality, natural available light only, realistic organic shadows and highlights, accurate Canon color science, subtle authentic film-like grain, maximum journalistic realism
-
-        Photorealistic, award-winning press photography style, Reuters / AP / Getty Images wide-shot documentary aesthetic, unposed, unpolished, frozen moment of real event coverage, centered symmetrical composition for dramatic emphasis
-
-        STRICTLY FORBIDDEN: off-center subject, rule of thirds composition, close-ups, medium shots, portraits, headshots, any clearly visible faces, detailed human figures in foreground or midground, glamour lighting, artificial bokeh, creamy background blur, HDR over-processing, oversaturated colors, plastic look, AI smoothness, digital artifacts, text, watermarks, logos, signatures, asymmetrical framing, vignette
-
-        --style raw --v 6 --stylize 150-300 --q 2 --ar 16:9   (or 3:2 for more classic press feel; lower stylize helps enforce strict centering)
+        Wide establishing shot, authentic trending news documentary photo of {topic}, main subject dead center, symmetrical framing, central vanishing point. Environmental storytelling: aftermath, traces of activity. Distant tiny people as scale only, no visible faces or detailed figures. Shot on Canon EOS R5 Mark II, 24-28mm wide lens, f/8-f/11 deep DoF, edge-to-edge sharp, natural light, realistic shadows/highlights, true colors, subtle grain, photorealistic RAW detail, Reuters/AP style. STRICTLY NO: close-ups, portraits, faces, medium shots, glamour lighting, artificial bokeh, HDR, oversaturation, text, watermarks, logos, symmetry obsession, AI smoothness.
         """
 
         negative_prompt = """
