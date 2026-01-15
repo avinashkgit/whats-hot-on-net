@@ -4,6 +4,7 @@ from io import BytesIO
 from PIL import Image, ImageEnhance
 import cloudinary
 import cloudinary.uploader
+import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import certifi
