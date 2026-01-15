@@ -6,6 +6,7 @@ from agents.extractor_pool import extract_articles_parallel
 from agents.context_builder_agent import build_context, build_fallback_context
 from agents.writer_agent import WriterAgent
 from agents.image_agent import ImageAgent
+from agents.x_poster_agent import XPosterAgent
 
 from app.db.database import SessionLocal
 from app.db.repository import save_article, get_or_create_category
@@ -75,6 +76,10 @@ def run():
             content=content,
             category_id=category.id,
             image_url=image_url,
+        )
+        XPosterAgent().post_article(
+            title=title,
+            slug=slug,
         )
 
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
