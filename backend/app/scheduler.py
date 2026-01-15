@@ -1,4 +1,5 @@
 from slugify import slugify
+from dotenv import load_dotenv
 
 from agents.topic_agent import TopicAgent
 from agents.search_agent import search_news
@@ -11,6 +12,8 @@ from agents.x_poster_agent import XPosterAgent
 from app.db.database import SessionLocal
 from app.db.repository import save_article, get_or_create_category
 
+load_dotenv()
+
 
 def run():
     db = SessionLocal()
@@ -21,7 +24,9 @@ def run():
         # =========================
         topic_data = TopicAgent(db).run()
 
-        topic = topic_data["title"]
+        topic = topic_data.get("title")
+        if not topic:
+            raise RuntimeError(f"Invalid topic_data returned: {topic_data}")
 
         print("Topic idea:", topic_data)
 
@@ -77,13 +82,14 @@ def run():
             category_id=category.id,
             image_url=image_url,
         )
-        XPosterAgent().post_article_with_image(
-            title=title,
-            slug=slug,
-            img=image_url
-        )
 
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
+
+        # =========================
+        # 8️⃣ Download image and post to X
+        # =========================
+        tweet_id = XPosterAgent().post_article_with_image_url(title, slug, image_url)
+        print("✅ Tweet posted | tweet_id =", tweet_id)
 
     finally:
         db.close()

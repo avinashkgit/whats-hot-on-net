@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 import certifi
 from huggingface_hub import InferenceClient, InferenceTimeoutError
-from huggingface_hub.errors import HfHubHTTPError   # ← this is the correct location
+from huggingface_hub.errors import HfHubHTTPError  # ← this is the correct location
+
 load_dotenv()
 
 # Hugging Face Inference Client (new unified way - Jan 2026)
@@ -43,14 +44,7 @@ class ImageAgent:
         """
         # Optimized prompt for documentary/news realism (works great on FLUX)
         prompt = f"""
-        Wide establishing shot, authentic trending news documentary photo of {topic}, main subject dead center, symmetrical framing, central vanishing point. Environmental storytelling: aftermath, traces of activity. Distant tiny people as scale only, no visible faces or detailed figures. Shot on Canon EOS R5 Mark II, 24-28mm wide lens, f/8-f/11 deep DoF, edge-to-edge sharp, natural light, realistic shadows/highlights, true colors, subtle grain, photorealistic RAW detail, Reuters/AP style. STRICTLY NO: close-ups, portraits, faces, medium shots, glamour lighting, artificial bokeh, HDR, oversaturation, text, watermarks, logos, symmetry obsession, AI smoothness.
-        """
-
-        negative_prompt = """
-        blurry, low quality, deformed, extra limbs, bad anatomy, watermark, text, logo,
-        cartoon, 3d render, painting, illustration, plastic skin, uncanny valley,
-        overexposed, underexposed, grainy, oversaturated, humans, people, faces, crowds
-        """
+        Wide establishing shot, authentic trending news documentary photo of {topic}, main subject centered with balanced framing and a clear vanishing point. Real-world context: recognizable setting, everyday details, subtle motion in the environment, signs of public attention, lived-in textures, natural imperfections, and small cues that reflect what’s happening without dramatizing it. Shot on Canon EOS R5 Mark II, 24–28mm wide lens, f/8–f/11 deep DoF, edge-to-edge sharp, natural light, realistic shadows/highlights, true colors, subtle grain, photorealistic RAW detail, Reuters/AP editorial style. STRICTLY NO: close-ups, portraits, faces, medium shots, glamour lighting, artificial bokeh, HDR, oversaturation, text, watermarks, logos, perfect symmetry, AI smoothness.        """
 
         # ── PRIMARY: Hugging Face Inference Providers ───────────────────────────────
         print("Trying Hugging Face Inference Providers (FLUX.1-schnell)...")
@@ -61,14 +55,16 @@ class ImageAgent:
                 # negative_prompt=negative_prompt,     # some providers support it
                 width=1024,
                 height=1024,
-                num_inference_steps=20,               # fast mode: 4-20 steps
+                num_inference_steps=20,  # fast mode: 4-20 steps
                 guidance_scale=6.0,
             )
             print("HF FLUX succeeded!")
             return self._process_and_upload(image, topic, "hf-flux")
 
         except (HfHubHTTPError, InferenceTimeoutError, Exception) as e:
-            print(f"HF failed: {e.__class__.__name__} - {str(e)} → falling back to xAI...")
+            print(
+                f"HF failed: {e.__class__.__name__} - {str(e)} → falling back to xAI..."
+            )
 
         # ── FALLBACK: xAI Grok ──────────────────────────────────────────────────────
         print("Falling back to xAI Grok...")
@@ -77,7 +73,7 @@ class ImageAgent:
                 "model": "grok-2-image-1212",  # or "grok-2-image-1212" if you prefer versioned
                 "prompt": prompt,
                 "n": 1,
-                "response_format": "url"
+                "response_format": "url",
             }
 
             response = requests.post(
