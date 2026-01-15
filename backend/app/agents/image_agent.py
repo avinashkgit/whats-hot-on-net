@@ -113,6 +113,8 @@ class ImageAgent:
             return self._process_and_upload(image, topic, "xai-grok")
 
         except Exception as e:
+            print("Status:", e.response.status_code)
+            print("Details:", e.response.text)
             raise RuntimeError(f"Both HF and xAI failed! Error: {e}") from e
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
