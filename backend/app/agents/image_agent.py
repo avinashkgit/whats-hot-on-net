@@ -43,7 +43,6 @@ class ImageAgent:
         Returns:
             tuple: (permanent_cloudinary_url: str, model_name: str)
         """
-        # Short, strong prompt focused on landscape (≈480-520 chars)
         prompt = f"""
         16:9 LANDSCAPE ONLY - horizontal ultra-wide news photograph, {topic},
         wide establishing shot, centered main subject, balanced composition.
@@ -63,10 +62,10 @@ class ImageAgent:
             image = HF_CLIENT.text_to_image(
                 prompt=prompt,
                 model="black-forest-labs/FLUX.1-schnell",
-                width=1344,  # Most reliable landscape size for FLUX
+                width=1344,
                 height=768,
                 num_inference_steps=20,
-                guidance_scale=5.5,  # Better prompt adherence
+                guidance_scale=5.5,
             )
             print("HF FLUX succeeded!")
             url = self._process_and_upload(image, topic, "hf-flux")
@@ -115,7 +114,38 @@ class ImageAgent:
             print("xAI Details:", e.response.text if hasattr(e, "response") else str(e))
             raise RuntimeError(f"Both HF and xAI failed! Last error: {e}") from e
 
+    # ✅ NEW: Force 16:9 landscape crop + resize
+    def _to_16_9(self, img: Image.Image, target_w: int = 1344, target_h: int = 768) -> Image.Image:
+        """
+        Center-crop the image to 16:9 and resize to target resolution.
+        This guarantees landscape output even if the model returns square/portrait.
+        """
+        img = img.convert("RGB")
+        w, h = img.size
+
+        target_ratio = target_w / target_h
+        current_ratio = w / h
+
+        # If image is wider than 16:9 -> crop width
+        if current_ratio > target_ratio:
+            new_w = int(h * target_ratio)
+            left = (w - new_w) // 2
+            img = img.crop((left, 0, left + new_w, h))
+
+        # If image is taller than 16:9 -> crop height
+        else:
+            new_h = int(w / target_ratio)
+            top = (h - new_h) // 2
+            img = img.crop((0, top, w, top + new_h))
+
+        # Resize to final output size
+        img = img.resize((target_w, target_h), Image.LANCZOS)
+        return img
+
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
+        # ✅ Force landscape always (even for xAI outputs)
+        image = self._to_16_9(image, target_w=1344, target_h=768)
+
         # Slight sharpening
         enhancer = ImageEnhance.Sharpness(image)
         image = enhancer.enhance(1.08)
@@ -142,6 +172,7 @@ class ImageAgent:
                 provider,
                 "documentary",
                 "landscape",
+                "16:9",
             ],
         )
 
