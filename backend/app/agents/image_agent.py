@@ -144,7 +144,7 @@ class ImageAgent:
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
         # ✅ Force landscape always (even for xAI outputs)
-        image = self._to_16_9(image, target_w=1344, target_h=768)
+        # image = self._to_16_9(image, target_w=1344, target_h=768)
 
         # Slight sharpening
         enhancer = ImageEnhance.Sharpness(image)
