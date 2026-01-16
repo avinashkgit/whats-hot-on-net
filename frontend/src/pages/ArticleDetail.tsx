@@ -99,7 +99,7 @@ export default function ArticleDetail() {
         <meta name="twitter:image" content={seoImage} />
         {/* Optional - your handle */}
         <meta name="twitter:creator" content="@avinash2it" />
-        <meta name="twitter:site" content="@hotonnet_net_com" />{" "}
+        <meta name="twitter:site" content="@hotonnet_com" />{" "}
         {/* or your main account */}
       </Helmet>
 
