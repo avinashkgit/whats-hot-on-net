@@ -30,6 +30,7 @@ def save_article(
     content: str,
     category_id,
     image_url: str | None = None,
+    image_model: str | None = None,
 ):
     article = Article(
         topic=topic,
@@ -39,6 +40,7 @@ def save_article(
         content=content,
         category_id=category_id,
         image_url=image_url,
+        image_model=image_model,
     )
 
     db.add(article)
@@ -68,12 +70,7 @@ def get_articles(
     query = query.order_by(Article.created_at.desc())
 
     total = query.count()
-    articles = (
-        query
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    )
+    articles = query.offset((page - 1) * limit).limit(limit).all()
 
     return {
         "items": [
@@ -102,7 +99,6 @@ def get_articles(
     }
 
 
-
 # ======================================================
 # GET SINGLE ARTICLE BY SLUG (Article Page)
 # ======================================================
@@ -113,7 +109,7 @@ def get_article_by_slug(db: Session, *, slug: str):
 
     if not article:
         return None
-    
+
     article.views += 1
     db.commit()
     db.refresh(article)
@@ -158,10 +154,6 @@ def get_or_create_category(db: Session, *, name: str) -> Category:
 
     return category
 
+
 def topic_exists(db, *, topic: str) -> bool:
-    return (
-        db.query(Article.id)
-        .filter(Article.topic == topic)
-        .first()
-        is not None
-    )
+    return db.query(Article.id).filter(Article.topic == topic).first() is not None

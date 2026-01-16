@@ -67,7 +67,7 @@ def run():
         # =========================
         # 6️⃣ Generate image
         # =========================
-        image_url = ImageAgent().run(topic)
+        image_url, model = ImageAgent().run(topic)
 
         # =========================
         # 7️⃣ Save article
@@ -81,6 +81,7 @@ def run():
             content=content,
             category_id=category.id,
             image_url=image_url,
+            image_model=model,
         )
 
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
