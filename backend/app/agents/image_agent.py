@@ -36,28 +36,37 @@ cloudinary.config(
 class ImageAgent:
     def run(self, topic: str) -> tuple[str, str]:
         """
-        Generates an image using Hugging Face (FLUX.1-schnell) as primary,
-        falls back to xAI Grok (Aurora) if HF fails.
+        Generates landscape news-style image.
+        Primary: FLUX.1-schnell (Hugging Face)
+        Fallback: xAI Grok image generation
 
         Returns:
-            tuple: (cloudinary_permanent_url: str, generated_by_model: str)
+            tuple: (permanent_cloudinary_url: str, model_name: str)
         """
-        # Optimized prompt for documentary/news realism
+        # Short, strong prompt focused on landscape (≈480-520 chars)
         prompt = f"""
-        Ultra-wide horizontal news photograph, strongly landscape 16:9 orientation, wide establishing shot, 
-        authentic trending news documentary photo of {topic}, main subject centered with balanced framing and a clear vanishing point. Real-world context: recognizable setting, everyday details, subtle motion in the environment, signs of public attention, lived-in textures, natural imperfections, and small cues that reflect what’s happening without dramatizing it. Shot on Canon EOS R5 Mark II, 24–28mm wide lens, f/8–f/11 deep DoF, edge-to-edge sharp, natural light, realistic shadows/highlights, true colors, subtle grain, photorealistic RAW detail, Reuters/AP editorial style. STRICTLY NO: close-ups, portraits, faces, medium shots, glamour lighting, artificial bokeh, HDR, oversaturation, text, watermarks, logos, perfect symmetry, AI smoothness.
+        16:9 LANDSCAPE ONLY - horizontal ultra-wide news photograph, {topic},
+        wide establishing shot, centered main subject, balanced composition.
+        Realistic documentary style: natural setting, everyday details, lived-in textures,
+        subtle motion, natural imperfections. Shot on Canon EOS, 24-28mm lens,
+        deep DoF, edge-to-edge sharp, natural light, true colors, subtle grain,
+        Reuters/AP photorealistic style.
+        STRICTLY NO: vertical, square, portrait, close-ups, face focus, glamour lighting,
+        artificial bokeh, HDR, oversaturation, text, watermarks, logos, symmetry, AI smoothness.
         """
 
-        # ── PRIMARY: Hugging Face Inference (FLUX.1-schnell) ─────────────────────────
+        print(f"Prompt length: {len(prompt)} characters")
+
+        # ── PRIMARY: Hugging Face - FLUX.1-schnell ────────────────────────────────
         print("Trying Hugging Face Inference (FLUX.1-schnell)...")
         try:
             image = HF_CLIENT.text_to_image(
                 prompt=prompt,
                 model="black-forest-labs/FLUX.1-schnell",
-                width=1360,
+                width=1344,  # Most reliable landscape size for FLUX
                 height=768,
                 num_inference_steps=20,
-                guidance_scale=6.0,
+                guidance_scale=5.5,  # Better prompt adherence
             )
             print("HF FLUX succeeded!")
             url = self._process_and_upload(image, topic, "hf-flux")
@@ -68,11 +77,11 @@ class ImageAgent:
                 f"HF failed: {e.__class__.__name__} - {str(e)} → falling back to xAI..."
             )
 
-        # ── FALLBACK: xAI Grok ──────────────────────────────────────────────────────
+        # ── FALLBACK: xAI Grok ────────────────────────────────────────────────────
         print("Falling back to xAI Grok...")
         try:
             xai_payload = {
-                "model": "grok-2-image-1212",  # or "aurora" / latest available model name
+                "model": "grok-2-image-1212",
                 "prompt": prompt,
                 "n": 1,
                 "response_format": "url",
@@ -96,7 +105,7 @@ class ImageAgent:
             image = Image.open(BytesIO(img_resp.content)).convert("RGB")
             print("xAI Grok succeeded!")
             url = self._process_and_upload(image, topic, "xai-grok")
-            return url, "xAI Grok Aurora (grok-2-image-1212)"
+            return url, "xAI Grok (grok-2-image-1212)"
 
         except Exception as e:
             print(
@@ -104,9 +113,10 @@ class ImageAgent:
                 e.response.status_code if hasattr(e, "response") else "N/A",
             )
             print("xAI Details:", e.response.text if hasattr(e, "response") else str(e))
-            raise RuntimeError(f"Both HF and xAI failed! Error: {e}") from e
+            raise RuntimeError(f"Both HF and xAI failed! Last error: {e}") from e
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
+        # Slight sharpening
         enhancer = ImageEnhance.Sharpness(image)
         image = enhancer.enhance(1.08)
 
@@ -115,7 +125,8 @@ class ImageAgent:
         buffer.seek(0)
 
         safe_topic = topic.lower().replace(" ", "_")[:48]
-        public_id = f"news_{safe_topic}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{provider}"
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        public_id = f"news_{safe_topic}_{timestamp}_{provider}"
 
         result = cloudinary.uploader.upload(
             buffer,
@@ -125,7 +136,13 @@ class ImageAgent:
             resource_type="image",
             format="jpg",
             quality="auto:good",
-            tags=["ai-generated", "photojournalism", provider, "documentary"],
+            tags=[
+                "ai-generated",
+                "photojournalism",
+                provider,
+                "documentary",
+                "landscape",
+            ],
         )
 
         return result["secure_url"]
