@@ -173,15 +173,33 @@ export default function ArticleDetail() {
             {/* =========================
                 HERO IMAGE
             ========================== */}
-            {article.imageUrl && (
-              <div className="container mx-auto px-4 max-w-5xl -mt-12">
-                <motion.img
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  src={article.imageUrl}
-                  alt={article.title}
-                  className="rounded-2xl shadow-xl w-full object-cover aspect-[21/9]"
-                />
+            {/* =========================
+    HERO IMAGE – FULLY VISIBLE & NEAT
+============================= */}
+            {article.imageUrl ? (
+              <div className="container mx-auto px-4 max-w-5xl mt-12 md:mt-16">
+                <div className="relative overflow-hidden rounded-2xl shadow-2xl bg-gradient-to-b from-secondary/20 to-transparent">
+                  <motion.img
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    src={article.imageUrl}
+                    alt={article.title}
+                    className="w-full h-auto max-h-[80vh] object-contain mx-auto"
+                    loading="eager" // Faster LCP for social previews
+                  />
+                  {/* Optional subtle overlay gradient for better text contrast if needed */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+                </div>
+              </div>
+            ) : (
+              // Optional: Clean placeholder when no image
+              <div className="container mx-auto px-4 max-w-5xl mt-12 md:mt-16">
+                <div className="w-full h-64 md:h-96 bg-gradient-to-br from-secondary/50 to-secondary/30 rounded-2xl flex items-center justify-center">
+                  <span className="text-muted-foreground text-lg italic">
+                    Featured image coming soon...
+                  </span>
+                </div>
               </div>
             )}
 

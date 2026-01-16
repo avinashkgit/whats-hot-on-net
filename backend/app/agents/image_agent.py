@@ -44,7 +44,8 @@ class ImageAgent:
         """
         # Optimized prompt for documentary/news realism (works great on FLUX)
         prompt = f"""
-        Wide establishing shot, authentic trending news documentary photo of {topic}, main subject centered with balanced framing and a clear vanishing point. Real-world context: recognizable setting, everyday details, subtle motion in the environment, signs of public attention, lived-in textures, natural imperfections, and small cues that reflect what’s happening without dramatizing it. Shot on Canon EOS R5 Mark II, 24–28mm wide lens, f/8–f/11 deep DoF, edge-to-edge sharp, natural light, realistic shadows/highlights, true colors, subtle grain, photorealistic RAW detail, Reuters/AP editorial style. STRICTLY NO: close-ups, portraits, faces, medium shots, glamour lighting, artificial bokeh, HDR, oversaturation, text, watermarks, logos, perfect symmetry, AI smoothness.        """
+        Ultra-wide horizontal news photograph, strongly landscape 16:9 orientation, wide establishing shot, 
+        authentic trending news documentary photo of {topic}, main subject centered with balanced framing and a clear vanishing point. Real-world context: recognizable setting, everyday details, subtle motion in the environment, signs of public attention, lived-in textures, natural imperfections, and small cues that reflect what’s happening without dramatizing it. Shot on Canon EOS R5 Mark II, 24–28mm wide lens, f/8–f/11 deep DoF, edge-to-edge sharp, natural light, realistic shadows/highlights, true colors, subtle grain, photorealistic RAW detail, Reuters/AP editorial style. STRICTLY NO: close-ups, portraits, faces, medium shots, glamour lighting, artificial bokeh, HDR, oversaturation, text, watermarks, logos, perfect symmetry, AI smoothness.        """
 
         # ── PRIMARY: Hugging Face Inference Providers ───────────────────────────────
         print("Trying Hugging Face Inference Providers (FLUX.1-schnell)...")
@@ -53,8 +54,8 @@ class ImageAgent:
                 prompt=prompt,
                 model="black-forest-labs/FLUX.1-schnell",  # fast & excellent photorealism
                 # negative_prompt=negative_prompt,     # some providers support it
-                width=1024,
-                height=1024,
+                width=1360,
+                height=768,
                 num_inference_steps=20,  # fast mode: 4-20 steps
                 guidance_scale=6.0,
             )
