@@ -33,6 +33,7 @@ class Article(Base):
     content = Column(Text, nullable=False)
 
     image_url = Column(Text)
+    image_model = Column(Text)
 
     category_id = Column(
         UUID(as_uuid=True),
