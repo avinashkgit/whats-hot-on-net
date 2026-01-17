@@ -14,7 +14,7 @@ jobs:
         env:
           BACKEND_BASE_URL: ${{ secrets.BACKEND_BASE_URL }}
         run: |
-          RENDER_HEALTH_URL="${BACKEND_BASE_URL}/render"
+          RENDER_HEALTH_URL="${BACKEND_BASE_URL}/health"
           echo "Pinging: $RENDER_HEALTH_URL"
           curl -s -o /dev/null -w "%{http_code}\n" "$RENDER_HEALTH_URL"
 
