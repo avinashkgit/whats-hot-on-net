@@ -70,7 +70,7 @@ def run():
         # =========================
         prompt_data = ImagePromptAgent().run(
             topic=summary,  # use rewritten title for best results
-            # category=category_name,
+            category=category_name,
         )
 
         final_prompt = prompt_data["prompt"]

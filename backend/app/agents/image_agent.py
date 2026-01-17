@@ -136,7 +136,7 @@ Negative prompt:
         return img
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
-        image = self._to_16_9(image, target_w=1344, target_h=768)
+        # image = self._to_16_9(image, target_w=1344, target_h=768)
 
         enhancer = ImageEnhance.Sharpness(image)
         image = enhancer.enhance(1.08)
