@@ -73,3 +73,8 @@ def article(slug: str, db: Session = Depends(get_db)):
             detail=f"Article not found"
         )
     return article
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
