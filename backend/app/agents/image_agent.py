@@ -1,5 +1,4 @@
 import os
-import time
 from io import BytesIO
 from PIL import Image, ImageEnhance
 import cloudinary
@@ -13,12 +12,10 @@ from huggingface_hub.errors import HfHubHTTPError
 
 load_dotenv()
 
-# Hugging Face Inference Client
 HF_CLIENT = InferenceClient(
     api_key=os.environ.get("HF_TOKEN"),
 )
 
-# xAI API setup
 XAI_URL = "https://api.x.ai/v1/images/generations"
 XAI_HEADERS = {
     "Authorization": f"Bearer {os.environ.get('XAI_API_KEY')}",
@@ -34,38 +31,41 @@ cloudinary.config(
 
 
 class ImageAgent:
-    def run(self, topic: str) -> tuple[str, str]:
+    def run(
+        self, prompt: str, negative_prompt: str = "", topic: str = "news"
+    ) -> tuple[str, str]:
         """
-        Generates landscape news-style image.
-        Primary: FLUX.1-schnell (Hugging Face)
-        Fallback: xAI Grok image generation
-
-        Returns:
-            tuple: (permanent_cloudinary_url: str, model_name: str)
-        """
-        prompt = f"""
-        16:9 LANDSCAPE ONLY - horizontal ultra-wide news photograph, {topic},
-        wide establishing shot, centered main subject, balanced composition.
-        Realistic documentary style: natural setting, everyday details, lived-in textures,
-        subtle motion, natural imperfections. Shot on Canon EOS, 24-28mm lens,
-        deep DoF, edge-to-edge sharp, natural light, true colors, subtle grain,
-        Reuters/AP photorealistic style.
-        STRICTLY NO: vertical, square, portrait, close-ups, face focus, glamour lighting,
-        artificial bokeh, HDR, oversaturation, text, watermarks, logos, symmetry, AI smoothness.
+        Generates landscape news-style image using the provided prompt.
+        Primary: HF FLUX
+        Fallback: xAI Grok
         """
 
-        print(f"Prompt length: {len(prompt)} characters")
+        final_prompt = f"""
+16:9 LANDSCAPE ONLY.
+{prompt}
+
+Photojournalism requirements:
+- wide establishing shot
+- cinematic realistic lighting
+- environment visible, not close-up
+- no text, no logos, no watermark
+
+Negative prompt:
+{negative_prompt}
+"""
+
+        print("🖼️ Final image prompt length:", len(final_prompt))
 
         # ── PRIMARY: Hugging Face - FLUX.1-schnell ────────────────────────────────
         print("Trying Hugging Face Inference (FLUX.1-schnell)...")
         try:
             image = HF_CLIENT.text_to_image(
-                prompt=prompt,
+                prompt=final_prompt,
                 model="black-forest-labs/FLUX.1-schnell",
                 width=1344,
                 height=768,
-                num_inference_steps=20,
-                guidance_scale=5.5,
+                num_inference_steps=22,
+                guidance_scale=6.0,
             )
             print("HF FLUX succeeded!")
             url = self._process_and_upload(image, topic, "hf-flux")
@@ -81,7 +81,7 @@ class ImageAgent:
         try:
             xai_payload = {
                 "model": "grok-2-image-1212",
-                "prompt": prompt,
+                "prompt": final_prompt,
                 "n": 1,
                 "response_format": "url",
             }
@@ -114,39 +114,30 @@ class ImageAgent:
             print("xAI Details:", e.response.text if hasattr(e, "response") else str(e))
             raise RuntimeError(f"Both HF and xAI failed! Last error: {e}") from e
 
-    # ✅ NEW: Force 16:9 landscape crop + resize
-    def _to_16_9(self, img: Image.Image, target_w: int = 1344, target_h: int = 768) -> Image.Image:
-        """
-        Center-crop the image to 16:9 and resize to target resolution.
-        This guarantees landscape output even if the model returns square/portrait.
-        """
+    def _to_16_9(
+        self, img: Image.Image, target_w: int = 1344, target_h: int = 768
+    ) -> Image.Image:
         img = img.convert("RGB")
         w, h = img.size
 
         target_ratio = target_w / target_h
         current_ratio = w / h
 
-        # If image is wider than 16:9 -> crop width
         if current_ratio > target_ratio:
             new_w = int(h * target_ratio)
             left = (w - new_w) // 2
             img = img.crop((left, 0, left + new_w, h))
-
-        # If image is taller than 16:9 -> crop height
         else:
             new_h = int(w / target_ratio)
             top = (h - new_h) // 2
             img = img.crop((0, top, w, top + new_h))
 
-        # Resize to final output size
         img = img.resize((target_w, target_h), Image.LANCZOS)
         return img
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
-        # ✅ Force landscape always (even for xAI outputs)
-        # image = self._to_16_9(image, target_w=1344, target_h=768)
+        image = self._to_16_9(image, target_w=1344, target_h=768)
 
-        # Slight sharpening
         enhancer = ImageEnhance.Sharpness(image)
         image = enhancer.enhance(1.08)
 

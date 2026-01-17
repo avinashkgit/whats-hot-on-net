@@ -6,6 +6,7 @@ from agents.search_agent import search_news
 from agents.extractor_pool import extract_articles_parallel
 from agents.context_builder_agent import build_context, build_fallback_context
 from agents.writer_agent import WriterAgent
+from agents.image_prompt_agent import ImagePromptAgent
 from agents.image_agent import ImageAgent
 from agents.x_poster_agent import XPosterAgent
 
@@ -65,12 +66,27 @@ def run():
         category = get_or_create_category(db, name=category_name)
 
         # =========================
-        # 6️⃣ Generate image
+        # 6️⃣ Generate scenic image prompt (NEW)
         # =========================
-        image_url, model = ImageAgent().run(topic)
+        prompt_data = ImagePromptAgent().run(
+            topic=summary,  # use rewritten title for best results
+            # category=category_name,
+        )
+
+        final_prompt = prompt_data["prompt"]
+        negative_prompt = prompt_data["negative_prompt"]
 
         # =========================
-        # 7️⃣ Save article
+        # 7️⃣ Generate image using prompt (UPDATED)
+        # =========================
+        image_url, model = ImageAgent().run(
+            prompt=final_prompt,
+            negative_prompt=negative_prompt,
+            topic=title,  # used for filename/public_id only
+        )
+
+        # =========================
+        # 8️⃣ Save article
         # =========================
         save_article(
             db=db,
@@ -87,7 +103,7 @@ def run():
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
 
         # =========================
-        # 8️⃣ Download image and post to X
+        # 9️⃣ Post to X
         # =========================
         tweet_id = XPosterAgent().post_article(title, slug)
         print("✅ Tweet posted | tweet_id =", tweet_id)
