@@ -105,7 +105,7 @@ def run():
         # =========================
         # 9️⃣ Post to X
         # =========================
-        tweet_id = XPosterAgent().post_article(title, slug)
+        tweet_id = XPosterAgent().post_article(summary, slug)
         print("✅ Tweet posted | tweet_id =", tweet_id)
 
     finally:
