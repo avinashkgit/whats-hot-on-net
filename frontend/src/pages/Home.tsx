@@ -1,9 +1,9 @@
 import { useArticles } from "@/hooks/use-blog";
 import { ArticleCard } from "@/components/ArticleCard";
+import { ArticleCardSkeleton } from "@/components/ArticleCardSkeleton";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { Loader2 } from "lucide-react";
-import { useLocation, useRoute, useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import {
   Pagination,
   PaginationContent,
@@ -31,17 +31,10 @@ export default function Home({ category }: HomeProps) {
     page,
     limit,
   });
-  /* ===========================
-     LOADING / ERROR STATES
-  ============================ */
 
-  if (isLoading && !data) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+  /* ===========================
+     ERROR STATE
+  ============================ */
 
   if (error) {
     console.error("ARTICLES QUERY ERROR:", error);
@@ -58,12 +51,6 @@ export default function Home({ category }: HomeProps) {
     );
   }
 
-  if (!data) return null;
-
-  const { items: articles, totalPages } = data;
-  const featuredArticle = articles[0];
-  const remainingArticles = articles.slice(1);
-
   /* ===========================
      PAGINATION HANDLER
   ============================ */
@@ -77,6 +64,52 @@ export default function Home({ category }: HomeProps) {
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  /* ===========================
+     LOADING STATE (SKELETON UI)
+  ============================ */
+
+  if (isLoading && !data) {
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
+        <Navigation />
+
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex-grow">
+          {/* HERO HEADER (HOME ONLY) */}
+          {!category && page === 1 && (
+            <div className="mb-12 text-center max-w-2xl mx-auto">
+              <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-4 leading-tight">
+                Stories that matter, trending across the world.
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Essential news, science, tech, culture, and global insights.
+              </p>
+            </div>
+          )}
+
+          {/* FEATURED SKELETON */}
+          {!category && page === 1 && <ArticleCardSkeleton featured />}
+
+          {page === 1 && <div className="border-t border-border my-16" />}
+
+          {/* GRID SKELETON */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+            {Array.from({ length: page === 1 ? 9 : 10 }).map((_, i) => (
+              <ArticleCardSkeleton key={i} />
+            ))}
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const { items: articles, totalPages } = data;
+  const featuredArticle = articles[0];
+  const remainingArticles = articles.slice(1);
 
   /* ===========================
      RENDER

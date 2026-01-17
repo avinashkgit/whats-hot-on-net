@@ -3,10 +3,11 @@ import { Navigation } from "@/components/Navigation";
 import { useArticle } from "@/hooks/use-blog";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { Calendar, Clock, Copy, Eye, Loader2, Share2 } from "lucide-react";
-import { Helmet } from "react-helmet-async"; // ← Added
+import { Calendar, Clock, Copy, Eye, Share2 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 import { JSXElementConstructor, Key, ReactElement, ReactNode } from "react";
 import { useRoute } from "wouter";
+import { ArticleDetailSkeleton } from "./ArticleDetailSkeleton";
 
 export default function ArticleDetail() {
   const [, params] = useRoute("/article/:slug");
@@ -19,9 +20,13 @@ export default function ArticleDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
+      <>
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+          <Navigation />
+          <ArticleDetailSkeleton />
+          <Footer />
+        </div>
+      </>
     );
   }
 
@@ -51,11 +56,10 @@ export default function ArticleDetail() {
   const readTime = Math.ceil(article.content.length / 1000);
   const pageUrl = typeof window !== "undefined" ? window.location.href : "";
 
-  // Prepare SEO values (fallback if some fields are missing)
   const seoTitle = article.title;
   const seoDescription =
     article.summary || article.content.substring(0, 160) + "...";
-  const seoImage = article.imageUrl || ""; // Make sure this is a FULL https:// URL
+  const seoImage = article.imageUrl || "";
   const canonicalUrl = pageUrl || `https://hotonnet.com/article/${slug}`;
 
   const handleShare = async () => {
@@ -81,26 +85,21 @@ export default function ArticleDetail() {
 
   return (
     <>
-      {/* Dynamic meta tags for social sharing */}
       <Helmet>
         <title>{seoTitle} | HotOnNet</title>
         <meta name="description" content={seoDescription} />
-        {/* Open Graph */}
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:image" content={seoImage} />
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="HotOnNet" />
-        {/* Twitter/X Cards */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content={seoImage} />
-        {/* Optional - your handle */}
         <meta name="twitter:creator" content="@avinash2it" />
-        <meta name="twitter:site" content="@hotonnet_com" />{" "}
-        {/* or your main account */}
+        <meta name="twitter:site" content="@hotonnet_com" />
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -108,9 +107,7 @@ export default function ArticleDetail() {
 
         <main className="flex-grow">
           <article className="pb-24">
-            {/* =========================
-                HEADER
-            ========================== */}
+            {/* HEADER */}
             <div className="bg-secondary/30 pt-16 pb-20">
               <div className="container mx-auto px-4 max-w-4xl text-center">
                 <div className="text-sm font-bold tracking-wider uppercase text-primary mb-6">
@@ -170,12 +167,7 @@ export default function ArticleDetail() {
               </div>
             </div>
 
-            {/* =========================
-                HERO IMAGE
-            ========================== */}
-            {/* =========================
-    HERO IMAGE – FULLY VISIBLE & NEAT
-============================= */}
+            {/* HERO IMAGE */}
             {article.imageUrl ? (
               <div className="container mx-auto px-4 max-w-5xl mt-12 md:mt-16">
                 <div className="relative overflow-hidden rounded-2xl shadow-2xl bg-gradient-to-b from-secondary/20 to-transparent">
@@ -186,14 +178,12 @@ export default function ArticleDetail() {
                     src={article.imageUrl}
                     alt={article.title}
                     className="w-full h-auto max-h-[80vh] object-contain mx-auto"
-                    loading="eager" // Faster LCP for social previews
+                    loading="eager"
                   />
-                  {/* Optional subtle overlay gradient for better text contrast if needed */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
                 </div>
               </div>
             ) : (
-              // Optional: Clean placeholder when no image
               <div className="container mx-auto px-4 max-w-5xl mt-12 md:mt-16">
                 <div className="w-full h-64 md:h-96 bg-gradient-to-br from-secondary/50 to-secondary/30 rounded-2xl flex items-center justify-center">
                   <span className="text-muted-foreground text-lg italic">
@@ -203,9 +193,7 @@ export default function ArticleDetail() {
               </div>
             )}
 
-            {/* =========================
-                CONTENT + DESKTOP SHARE
-            ========================== */}
+            {/* CONTENT + DESKTOP SHARE */}
             <div className="container mx-auto px-4 max-w-3xl mt-16 grid md:grid-cols-[1fr_auto] gap-12">
               <div className="prose prose-lg dark:prose-invert max-w-none">
                 {article.content
@@ -259,9 +247,7 @@ export default function ArticleDetail() {
               </aside>
             </div>
 
-            {/* =========================
-                TAG
-            ========================== */}
+            {/* TAG */}
             <div className="container mx-auto px-4 max-w-3xl mt-16 border-t pt-6">
               <span className="inline-block px-4 py-2 bg-secondary rounded-full text-sm font-medium">
                 #{article.category?.slug ?? "general"}
