@@ -26,7 +26,7 @@ export default function Home({ category }: HomeProps) {
   // ✅ Toggle this:
   // true  => shows preview placeholder boxes (recommended for testing UI)
   // false => shows real Google AdSense ads
-  const SHOW_AD_PREVIEW = true;
+  const SHOW_AD_PREVIEW = false;
 
   // ✅ AdSense Config (replace these when you go live)
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
