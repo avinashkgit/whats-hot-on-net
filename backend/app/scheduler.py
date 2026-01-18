@@ -84,11 +84,11 @@ def run():
         # =========================
         # 7️⃣ Generate image using prompt (UPDATED)
         # =========================
-        # image_url, model = ImageAgent().run(
-        #     prompt=final_prompt,
-        #     negative_prompt=negative_prompt,
-        #     topic=title,  # used for filename/public_id only
-        # )
+        image_url, model = ImageAgent().run(
+            prompt=final_prompt,
+            negative_prompt=negative_prompt,
+            topic=title,  # used for filename/public_id only
+        )
 
         # =========================
         # 8️⃣ Save article
@@ -101,8 +101,8 @@ def run():
             summary=summary,
             content=content,
             category_id=category.id,
-            # image_url=image_url,
-            # image_model=model,
+            image_url=image_url,
+            image_model=model,
         )
 
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
@@ -132,21 +132,20 @@ def run():
                 "title": title,
                 "body": short_summary,
                 "url": article_url,
-                # "image_url":image_url
+                "image_url": image_url,
                 "tokens": len(tokens),
             },
         )
 
         push_resp = send_push_to_tokens(
             tokens=tokens,
-            title=title,              # ✅ article title
-            body=short_summary,       # ✅ short summary
-            # "image_url":image_url
+            title=title,  # ✅ article title
+            body=short_summary,  # ✅ short summary
+            image_url=image_url,
             url=article_url,
         )
 
         print("✅ Push sent:", push_resp)
-
 
     finally:
         db.close()
