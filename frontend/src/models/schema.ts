@@ -52,3 +52,18 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+
+export type NotificationPlatform = "web" | "android" | "ios";
+
+export interface NotificationTokenCreate {
+  token: string;
+  platform: NotificationPlatform;
+  device_id?: string;
+  browser?: string;
+}
+
+export interface NotificationTokenResponse {
+  message: string;
+  id: string;
+}

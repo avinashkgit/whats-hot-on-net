@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 
 import { apiClient } from "@/api/apiClient";
-import type { Article } from "@/models/schema";
+import type { Article, NotificationTokenCreate } from "@/models/schema";
 
 /* ======================================================
    TEMP DATA SWITCH
@@ -130,3 +130,16 @@ export function useCreateArticle() {
     },
   });
 }
+
+/* ==============================
+   === SAVE NOTIFICATION TOKEN ===
+============================== */
+
+export function useSaveNotificationToken() {
+  return useMutation({
+    mutationFn: async (payload: NotificationTokenCreate) => {
+      return apiClient.saveNotificationToken(payload);
+    },
+  });
+}
+

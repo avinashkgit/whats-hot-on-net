@@ -1,3 +1,4 @@
+from app.db.models import NotificationTokenCreate
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from app.db.repository import (
     get_categories,
     get_articles,
     get_article_by_slug,
+    save_notification_token,
 )
 
 app = FastAPI(title="HotOnNet API")
@@ -78,3 +80,20 @@ def article(slug: str, db: Session = Depends(get_db)):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/notifications/token")
+def register_notification_token(payload: NotificationTokenCreate, db: Session = Depends(get_db)):
+    token_row = save_notification_token(
+        db=db,
+        token=payload.token,
+        platform=payload.platform,
+        device_id=payload.device_id,
+        browser=payload.browser,
+    )
+
+    return {
+        "message": "Token saved",
+        "id": str(token_row.id),
+    }
+
