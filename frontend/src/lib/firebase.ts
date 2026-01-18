@@ -10,9 +10,6 @@ const firebaseConfig = {
   appId: "1:430818351771:web:1d5f81b12ae226a7de043e",
 };
 
-// ✅ Debug (remove later)
-console.log("Firebase Config:", firebaseConfig);
-
 export const firebaseApp = initializeApp(firebaseConfig);
 
 // ✅ messaging should only be created if supported

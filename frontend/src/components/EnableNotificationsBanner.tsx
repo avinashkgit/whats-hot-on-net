@@ -71,7 +71,7 @@ export default function EnableNotificationsBanner() {
         <div className="min-w-0">
           <p className="text-sm font-semibold">Enable Notifications 🔔</p>
           <p className="text-xs text-muted-foreground">
-            Get alerts when a new trending article is posted.
+            Get alerts when a new article is posted.
           </p>
         </div>
 
