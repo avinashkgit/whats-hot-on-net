@@ -84,11 +84,11 @@ def run():
         # =========================
         # 7️⃣ Generate image using prompt (UPDATED)
         # =========================
-        image_url, model = ImageAgent().run(
-            prompt=final_prompt,
-            negative_prompt=negative_prompt,
-            topic=title,  # used for filename/public_id only
-        )
+        # image_url, model = ImageAgent().run(
+        #     prompt=final_prompt,
+        #     negative_prompt=negative_prompt,
+        #     topic=title,  # used for filename/public_id only
+        # )
 
         # =========================
         # 8️⃣ Save article
@@ -101,8 +101,8 @@ def run():
             summary=summary,
             content=content,
             category_id=category.id,
-            image_url=image_url,
-            image_model=model,
+            # image_url=image_url,
+            # image_model=model,
         )
 
         print(f"✅ Article saved | topic='{topic}' | category='{category_name}'")
@@ -119,7 +119,7 @@ def run():
             tokens=tokens,
             title=title,
             body=summary,
-            image_url=image_url,
+            # image_url=image_url,
             url=f"https://hotonnet.com/article/{slug}",
         )
 
