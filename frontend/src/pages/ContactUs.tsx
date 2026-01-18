@@ -32,10 +32,10 @@ export default function ContactUs() {
                 Email Support
               </h2>
               <p className="text-muted-foreground leading-relaxed">
-                📩 Email:{" "}
+                Email:{" "}
                 <a
                   href="mailto:support@hotonnet.com"
-                  className="text-primary font-semibold hover:underline"
+                  className="text-primary font-semibold no-underline hover:underline"
                 >
                   whatshotonnet@gmail.com"
                 </a>
@@ -52,7 +52,7 @@ export default function ContactUs() {
                   href="https://x.com/hotonnet_com"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-primary font-semibold hover:underline"
+                  className="text-primary font-semibold no-underline hover:underline"
                 >
                   @hotonnet_com
                 </a>
