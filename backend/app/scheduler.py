@@ -124,7 +124,7 @@ def run():
         # ✅ Keep summary short (FCM data size safety)
         short_summary = summary.strip()
         if len(short_summary) > 120:
-            short_summary = short_summary[:120] + "..."
+            short_summary = short_summary[:110] + "..."
 
         print(
             "PUSH DEBUG:",
@@ -141,6 +141,7 @@ def run():
             tokens=tokens,
             title=title,              # ✅ article title
             body=short_summary,       # ✅ short summary
+            # "image_url":image_url
             url=article_url,
         )
 
