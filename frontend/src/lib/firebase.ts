@@ -2,12 +2,12 @@ import { initializeApp } from "firebase/app";
 import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyAHzR7ycYphxI8S5-CgHF1E2--X9YxjIcU",
+  authDomain: "hotonnet-4a1d1.firebaseapp.com",
+  projectId: "hotonnet-4a1d1",
+  storageBucket: "hotonnet-4a1d1.firebasestorage.app",
+  messagingSenderId: "430818351771",
+  appId: "1:430818351771:web:1d5f81b12ae226a7de043e",
 };
 
 // ✅ Debug (remove later)
