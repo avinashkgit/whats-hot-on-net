@@ -10,8 +10,13 @@ from agents.image_prompt_agent import ImagePromptAgent
 from agents.image_agent import ImageAgent
 from agents.x_poster_agent import XPosterAgent
 
+from app.app.services.fcm_service import send_push_to_tokens
 from app.db.database import SessionLocal
-from app.db.repository import save_article, get_or_create_category
+from app.db.repository import (
+    get_active_notification_tokens,
+    save_article,
+    get_or_create_category,
+)
 
 load_dotenv()
 
@@ -107,6 +112,16 @@ def run():
         # =========================
         tweet_id = XPosterAgent().post_article(summary, slug)
         print("✅ Tweet posted | tweet_id =", tweet_id)
+
+        tokens = get_active_notification_tokens(db)
+
+        send_push_to_tokens(
+            tokens=tokens,
+            title=title,
+            body=summary,
+            image_url=image_url,
+            url=f"https://hotonnet.com/article/{slug}",
+        )
 
     finally:
         db.close()

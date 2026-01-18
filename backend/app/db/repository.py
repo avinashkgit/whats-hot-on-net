@@ -183,3 +183,11 @@ def save_notification_token(db: Session, token: str, platform: str, device_id=No
     db.commit()
     db.refresh(new_token)
     return new_token
+
+def get_active_notification_tokens(db):
+    rows = (
+        db.query(NotificationToken.token)
+        .filter(NotificationToken.is_active == True)
+        .all()
+    )
+    return [r[0] for r in rows]
