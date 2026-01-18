@@ -2,6 +2,10 @@ import { getToken } from "firebase/messaging";
 import { messaging } from "./firebase";
 
 export async function getFcmToken(): Promise<string> {
+  if (!messaging) {
+    throw new Error("FCM not ready / not supported in this browser");
+  }
+
   const permission = await Notification.requestPermission();
 
   if (permission !== "granted") {

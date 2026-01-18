@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging } from "firebase/messaging";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -10,5 +10,18 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// ✅ Debug (remove later)
+console.log("Firebase Config:", firebaseConfig);
+
 export const firebaseApp = initializeApp(firebaseConfig);
-export const messaging = getMessaging(firebaseApp);
+
+// ✅ messaging should only be created if supported
+export let messaging: any = null;
+
+isSupported().then((supported) => {
+  if (supported) {
+    messaging = getMessaging(firebaseApp);
+  } else {
+    console.warn("FCM is not supported in this browser.");
+  }
+});
