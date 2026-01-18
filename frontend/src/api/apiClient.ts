@@ -3,6 +3,8 @@ import {
   PaginatedResponse,
   ArticleWithCategory,
   Article,
+  NotificationTokenResponse,
+  NotificationTokenCreate,
 } from "@/models/schema";
 
 const API_BASE = "https://whats-hot-on-net.onrender.com";
@@ -16,6 +18,9 @@ const routes = {
     list: `${API_BASE}/articles`,
     get: (slug: string) => `${API_BASE}/articles/${slug}`,
     create: `${API_BASE}/articles`,
+  },
+  notifications: {
+    saveToken: `${API_BASE}/notifications/token`,
   },
 };
 
@@ -53,7 +58,7 @@ export const apiClient = {
 
   /* ---------- ARTICLES ---------- */
   getArticles(params?: {
-    category?: string;   // ✅ slug, not ID
+    category?: string; // ✅ slug, not ID
     page?: number;
     limit?: number;
   }) {
@@ -81,6 +86,14 @@ export const apiClient = {
     return apiFetch<Article>(routes.articles.create, {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  },
+
+  /* ---------- NOTIFICATIONS ---------- */
+  saveNotificationToken(payload: NotificationTokenCreate) {
+    return apiFetch<NotificationTokenResponse>(routes.notifications.saveToken, {
+      method: "POST",
+      body: JSON.stringify(payload),
     });
   },
 };

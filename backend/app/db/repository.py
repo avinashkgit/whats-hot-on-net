@@ -2,8 +2,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from uuid import UUID
 
-from .models import Article, Category
+from .models import Article, Category, NotificationToken
 from slugify import slugify
+from sqlalchemy import func
 
 
 # ======================================================
@@ -157,3 +158,28 @@ def get_or_create_category(db: Session, *, name: str) -> Category:
 
 def topic_exists(db, *, topic: str) -> bool:
     return db.query(Article.id).filter(Article.topic == topic).first() is not None
+
+
+def save_notification_token(db: Session, token: str, platform: str, device_id=None, browser=None):
+    existing = db.query(NotificationToken).filter(NotificationToken.token == token).first()
+
+    if existing:
+        existing.is_active = True
+        existing.last_seen_at = func.now()
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    new_token = NotificationToken(
+        token=token,
+        platform=platform,
+        device_id=device_id,
+        browser=browser,
+        is_active=True,
+        last_seen_at=func.now(),
+    )
+
+    db.add(new_token)
+    db.commit()
+    db.refresh(new_token)
+    return new_token
