@@ -14,15 +14,14 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload?.notification?.title || "HotOnNet";
-  const body = payload?.notification?.body || "New update available";
+  const title = payload?.data?.title || "HotOnNet";
+  const body = payload?.data?.body || "New update available";
 
   self.registration.showNotification(title, {
     body,
     icon: "/icons/web-app-manifest-192x192.png",
-    data: {
-      url: payload?.notification?.click_action || "https://hotonnet.com",
-    },
+    image: payload?.data?.image || undefined,
+    data: { url: payload?.data?.url || "https://hotonnet.com" },
   });
 });
 
