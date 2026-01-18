@@ -27,6 +27,7 @@ export function Footer() {
               <Link href="/" className="hover:text-primary transition-colors">
                 Home
               </Link>
+
               {categories?.map((category) => (
                 <Link
                   key={category.slug}
@@ -42,6 +43,24 @@ export function Footer() {
           <div>
             <h4 className="font-bold mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <Link
+                  href="/about"
+                  className="hover:text-primary transition-colors"
+                >
+                  About Us
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  href="/contact"
+                  className="hover:text-primary transition-colors"
+                >
+                  Contact Us
+                </Link>
+              </li>
+
               <li>
                 <Link
                   href="/privacy"

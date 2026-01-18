@@ -9,6 +9,8 @@ import ArticleDetail from "@/pages/ArticleDetail";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import NotFound from "@/pages/not-found";
 import { ScrollToTop } from "./ScrollToTop";
+import AboutUs from "./pages/AboutUs";
+import ContactUs from "./pages/ContactUs";
 
 function Router() {
   return (
@@ -21,6 +23,8 @@ function Router() {
 
       <Route path="/article/:slug" component={ArticleDetail} />
       <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/about" component={AboutUs} />
+      <Route path="/contact" component={ContactUs} />
       <Route component={NotFound} />
     </Switch>
   );
