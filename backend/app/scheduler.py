@@ -114,11 +114,12 @@ def run():
         print("✅ Tweet posted | tweet_id =", tweet_id)
 
         tokens = get_active_notification_tokens(db)
-
+        short_summary = (summary[:120] + "...") if len(summary) > 120 else summary
+``
         send_push_to_tokens(
             tokens=tokens,
             title=title,
-            body=summary,
+            body=short_summary,  # keep short
             # image_url=image_url,
             url=f"https://hotonnet.com/article/{slug}",
         )
