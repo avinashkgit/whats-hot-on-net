@@ -5,14 +5,32 @@ import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Copy, Eye, Share2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
-import { JSXElementConstructor, Key, ReactElement, ReactNode } from "react";
+import { useMemo } from "react";
 import { useRoute } from "wouter";
 import { ArticleDetailSkeleton } from "./ArticleDetailSkeleton";
+import { AdSense } from "@/components/AdSense";
+import { AdPreview } from "@/components/AdPreview";
 
 export default function ArticleDetail() {
   const [, params] = useRoute("/article/:slug");
   const slug = params?.slug || "";
   const { data: article, isLoading, error } = useArticle(slug);
+
+  // ✅ Toggle this:
+  const SHOW_AD_PREVIEW = false;
+
+  // ✅ Replace with your actual AdSense values
+  const ADSENSE_CLIENT = "ca-pub-4156721166651159";
+  const ARTICLE_DETAIL_PARAGRAPHS = "9646209040";
+
+  // ✅ IMPORTANT: hooks must be ABOVE any return
+  const paragraphs = useMemo(() => {
+    if (!article?.content) return [];
+    return article.content
+      .split("\n\n")
+      .map((p) => p.trim())
+      .filter(Boolean);
+  }, [article?.content]);
 
   /* =========================
      LOADING / ERROR
@@ -20,13 +38,11 @@ export default function ArticleDetail() {
 
   if (isLoading) {
     return (
-      <>
-        <div className="min-h-screen bg-background text-foreground flex flex-col">
-          <Navigation />
-          <ArticleDetailSkeleton />
-          <Footer />
-        </div>
-      </>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <Navigation />
+        <ArticleDetailSkeleton />
+        <Footer />
+      </div>
     );
   }
 
@@ -78,10 +94,6 @@ export default function ArticleDetail() {
   const copyLink = async () => {
     await navigator.clipboard.writeText(pageUrl);
   };
-
-  /* =========================
-     RENDER
-  ========================== */
 
   return (
     <>
@@ -196,31 +208,30 @@ export default function ArticleDetail() {
             {/* CONTENT + DESKTOP SHARE */}
             <div className="container mx-auto px-4 max-w-3xl mt-16 grid md:grid-cols-[1fr_auto] gap-12">
               <div className="prose prose-lg dark:prose-invert max-w-none">
-                {article.content
-                  .split("\n\n")
-                  .map(
-                    (
-                      paragraph:
-                        | string
-                        | number
-                        | boolean
-                        | ReactElement<any, string | JSXElementConstructor<any>>
-                        | Iterable<ReactNode>
-                        | null
-                        | undefined,
-                      idx: Key
-                    ) =>
-                      idx === 0 ? (
-                        <p
-                          key={idx}
-                          className="first-letter:text-7xl first-letter:font-black first-letter:pr-4 first-letter:float-left"
-                        >
-                          {paragraph}
-                        </p>
+                {paragraphs.map((paragraph, idx) => (
+                  <div key={idx} className="space-y-8">
+                    {idx === 0 ? (
+                      <p className="first-letter:text-7xl first-letter:font-black first-letter:pr-4 first-letter:float-left">
+                        {paragraph}
+                      </p>
+                    ) : (
+                      <p>{paragraph}</p>
+                    )}
+
+                    {/* ✅ Ad after each paragraph */}
+                    <div className="not-prose">
+                      {SHOW_AD_PREVIEW ? (
+                        <AdPreview label={`Ad after paragraph ${idx + 1}`} />
                       ) : (
-                        <p key={idx}>{paragraph}</p>
-                      )
-                  )}
+                        <AdSense
+                          adClient={ADSENSE_CLIENT}
+                          adSlot={ARTICLE_DETAIL_PARAGRAPHS}
+                          className="max-w-3xl mx-auto"
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* DESKTOP SHARE */}

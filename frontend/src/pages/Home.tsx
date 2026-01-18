@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useArticles } from "@/hooks/use-blog";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ArticleCardSkeleton } from "@/components/ArticleCardSkeleton";
@@ -12,6 +13,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { AdSense } from "@/components/AdSense";
+import { AdPreview } from "@/components/AdPreview";
 
 interface HomeProps {
   category?: string;
@@ -19,6 +22,16 @@ interface HomeProps {
 
 export default function Home({ category }: HomeProps) {
   const [, setLocation] = useLocation();
+
+  // ✅ Toggle this:
+  // true  => shows preview placeholder boxes (recommended for testing UI)
+  // false => shows real Google AdSense ads
+  const SHOW_AD_PREVIEW = true;
+
+  // ✅ AdSense Config (replace these when you go live)
+  const ADSENSE_CLIENT = "ca-pub-4156721166651159";
+  const HOME_AD_AFTER_FEATURE_ARTICLE = "2150862406";
+  const HOME_AD_WITHIN_CARDS = "5898535727";
 
   // Pagination
   const search = useSearch();
@@ -31,6 +44,27 @@ export default function Home({ category }: HomeProps) {
     page,
     limit,
   });
+
+  /* ===========================
+     RESPONSIVE CARDS PER ROW
+  ============================ */
+
+  const [cardsPerRow, setCardsPerRow] = useState(3);
+
+  useEffect(() => {
+    const updateCardsPerRow = () => {
+      const width = window.innerWidth;
+
+      if (width >= 1024) setCardsPerRow(3); // lg
+      else if (width >= 768) setCardsPerRow(2); // md
+      else setCardsPerRow(1); // mobile
+    };
+
+    updateCardsPerRow();
+    window.addEventListener("resize", updateCardsPerRow);
+
+    return () => window.removeEventListener("resize", updateCardsPerRow);
+  }, []);
 
   /* ===========================
      ERROR STATE
@@ -93,7 +127,7 @@ export default function Home({ category }: HomeProps) {
           {page === 1 && <div className="border-t border-border my-16" />}
 
           {/* GRID SKELETON */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8">
             {Array.from({ length: page === 1 ? 9 : 10 }).map((_, i) => (
               <ArticleCardSkeleton key={i} />
             ))}
@@ -111,9 +145,8 @@ export default function Home({ category }: HomeProps) {
   const featuredArticle = articles[0];
   const remainingArticles = articles.slice(1);
 
-  /* ===========================
-     RENDER
-  ============================ */
+  // On page 1, show featured separately, then show remaining in grid
+  const listToRender = page === 1 ? remainingArticles : articles;
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
@@ -141,17 +174,56 @@ export default function Home({ category }: HomeProps) {
           <ArticleCard article={featuredArticle} featured />
         )}
 
+        {/* ===========================
+            ✅ AD AFTER FEATURED
+        ============================ */}
+        {!category && page === 1 && (
+          <div className="my-10">
+            {SHOW_AD_PREVIEW ? (
+              <AdPreview label="Ad after Featured Article" />
+            ) : (
+              <AdSense
+                adClient={ADSENSE_CLIENT}
+                adSlot={HOME_AD_AFTER_FEATURE_ARTICLE}
+                className="max-w-4xl mx-auto"
+              />
+            )}
+          </div>
+        )}
+
         {page === 1 && articles.length > 0 && (
           <div className="border-t border-border my-16" />
         )}
 
         {/* ===========================
-            ARTICLE GRID
+            ARTICLE GRID + ADS AFTER EACH ROW
         ============================ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-          {(page === 1 ? remainingArticles : articles).map((article) => (
-            <ArticleCard key={article.id} article={article} />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8">
+          {listToRender.map((article, index) => {
+            const shouldShowAdAfterRow = (index + 1) % cardsPerRow === 0;
+
+            return (
+              <div key={article.id} className="contents">
+                {/* Card */}
+                <ArticleCard article={article} />
+
+                {/* Ad after each row */}
+                {shouldShowAdAfterRow && (
+                  <div className="col-span-1 md:col-span-2 lg:col-span-3 my-6">
+                    {SHOW_AD_PREVIEW ? (
+                      <AdPreview label="Ad between rows" />
+                    ) : (
+                      <AdSense
+                        adClient={ADSENSE_CLIENT}
+                        adSlot={HOME_AD_WITHIN_CARDS}
+                        className="max-w-4xl mx-auto"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* ===========================
