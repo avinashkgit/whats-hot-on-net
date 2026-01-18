@@ -14,6 +14,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+  console.log(payload);
   const title = payload?.data?.title || "HotOnNet";
   const body = payload?.data?.body || "New update available";
 
