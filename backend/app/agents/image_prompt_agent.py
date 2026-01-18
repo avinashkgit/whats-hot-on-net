@@ -51,31 +51,29 @@ class ImagePromptAgent:
             "Your job is to generate scenic, wide, cinematic prompts suitable for article thumbnails.\n"
             "You must output STRICTLY valid JSON matching the schema.\n"
             "Avoid close-up portraits unless explicitly requested.\n"
-            "Do not include real person names, brand logos, or copyrighted characters.\n"
         )
 
         user_message = f"""
-Create a single best image generation prompt for an article.
+        Create a single best image generation prompt for an article.
 
-TOPIC:
-{topic}
+        TOPIC:
+        {topic}
 
-CATEGORY:
-{category or "Auto-detect from topic"}
+        CATEGORY:
+        {category or "Auto-detect from topic"}
 
-REQUIREMENTS:
-- Scenic and wide (landscape)
-- Cinematic realistic photography style
-- Suitable for a news/blog thumbnail
-- Should visually represent the topic using environment + action
-- Avoid close-up faces and portrait framing
-- Do not mention real names, teams, clubs, brands, logos
+        REQUIREMENTS:
+        - Scenic and wide (landscape)
+        - Cinematic realistic photography style
+        - Suitable for a news/blog thumbnail
+        - Should visually represent the topic using environment + action
+        - Avoid close-up faces and portrait framing
 
-OUTPUT RULES:
-- Return ONLY JSON
-- The prompt should include camera/framing hints like: wide-angle, 24mm, 16:9, establishing shot
-- Include a strong negative_prompt to prevent close-ups, text, logos, watermarks
-"""
+        OUTPUT RULES:
+        - Return ONLY JSON
+        - The prompt should include camera/framing hints like: wide-angle, 24mm, 16:9, establishing shot
+        - Include a strong negative_prompt to prevent close-ups, text, logos, watermarks
+        """
 
         messages = [
             {"role": "system", "content": system_message},
