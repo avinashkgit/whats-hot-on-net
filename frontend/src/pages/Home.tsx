@@ -127,7 +127,7 @@ export default function Home({ category }: HomeProps) {
           {page === 1 && <div className="border-t border-border my-16" />}
 
           {/* GRID SKELETON */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
             {Array.from({ length: page === 1 ? 9 : 10 }).map((_, i) => (
               <ArticleCardSkeleton key={i} />
             ))}
