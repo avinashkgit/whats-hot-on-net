@@ -39,6 +39,9 @@ def send_push_to_tokens(
             "url": url,
             "image": image_url or "",
         },
+        webpush=messaging.WebpushConfig(
+            headers={"Urgency": "high"},
+        ),
     )
 
     resp = messaging.send_each_for_multicast(message)
