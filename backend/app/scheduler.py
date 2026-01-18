@@ -114,15 +114,38 @@ def run():
         print("✅ Tweet posted | tweet_id =", tweet_id)
 
         tokens = get_active_notification_tokens(db)
-        short_summary = (summary[:120] + "...") if len(summary) > 120 else summary
-``
-        send_push_to_tokens(
-            tokens=tokens,
-            title=title,
-            body=short_summary,  # keep short
-            # image_url=image_url,
-            url=f"https://hotonnet.com/article/{slug}",
+
+        if not tokens:
+            print("⚠️ No active notification tokens found. Skipping push.")
+            return
+
+        article_url = f"https://hotonnet.com/article/{slug}"
+
+        # ✅ Keep summary short (FCM data size safety)
+        short_summary = summary.strip()
+        if len(short_summary) > 120:
+            short_summary = short_summary[:120] + "..."
+
+        print(
+            "PUSH DEBUG:",
+            {
+                "title": title,
+                "body": short_summary,
+                "url": article_url,
+                # "image_url":image_url
+                "tokens": len(tokens),
+            },
         )
+
+        push_resp = send_push_to_tokens(
+            tokens=tokens,
+            title=title,              # ✅ article title
+            body=short_summary,       # ✅ short summary
+            url=article_url,
+        )
+
+        print("✅ Push sent:", push_resp)
+
 
     finally:
         db.close()
