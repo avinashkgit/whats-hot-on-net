@@ -18,18 +18,27 @@ def init_firebase():
     firebase_admin.initialize_app(cred)
 
 
-def send_push_to_tokens(tokens: list[str], title: str, body: str, url: str, image_url: str | None = None):
+def send_push_to_tokens(
+    tokens: list[str],
+    title: str,
+    body: str,
+    url: str,
+    image_url: str | None = None,
+):
     if not tokens:
         return {"success": 0, "failure": 0}
 
     init_firebase()
 
-    notif = messaging.Notification(title=title, body=body, image=image_url)
-
+    # ✅ DATA-ONLY message (prevents duplicate notifications)
     message = messaging.MulticastMessage(
         tokens=tokens,
-        notification=notif,
-        data={"url": url},
+        data={
+            "title": title,
+            "body": body,
+            "url": url,
+            "image": image_url or "",
+        },
     )
 
     resp = messaging.send_each_for_multicast(message)
