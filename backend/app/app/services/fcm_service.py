@@ -2,9 +2,6 @@ import os
 import json
 import firebase_admin
 from firebase_admin import credentials, messaging
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 def init_firebase():
@@ -21,9 +18,10 @@ def init_firebase():
     firebase_admin.initialize_app(cred)
 
 
-def send_push_to_tokens(
-    tokens: list[str], title: str, body: str, url: str, image_url: str | None = None
-):
+def send_push_to_tokens(tokens: list[str], title: str, body: str, url: str, image_url: str | None = None):
+    if not tokens:
+        return {"success": 0, "failure": 0}
+
     init_firebase()
 
     notif = messaging.Notification(title=title, body=body, image=image_url)
@@ -34,5 +32,9 @@ def send_push_to_tokens(
         data={"url": url},
     )
 
-    resp = messaging.send_multicast(message)
-    return {"success": resp.success_count, "failure": resp.failure_count}
+    resp = messaging.send_each_for_multicast(message)
+
+    return {
+        "success": resp.success_count,
+        "failure": resp.failure_count,
+    }
