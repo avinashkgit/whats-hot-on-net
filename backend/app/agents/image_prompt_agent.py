@@ -2,227 +2,132 @@ import os
 import json
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
-from constants import GPT_MODEL
 
 load_dotenv()
 
-# Primary client (OpenAI)
+# Primary client: OpenAI
 openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-# Fallback client (xAI Grok)
+# Fallback client: xAI Grok
 xai_client = OpenAI(
     api_key=os.environ["XAI_API_KEY"],
     base_url="https://api.x.ai/v1",
 )
 
-ALLOWED_CATEGORIES = [
-    "News",
-    "Science",
-    "Tech",
-    "Market",
-    "Lifestyle",
-    "Health",
-    "Sports",
-    "Entertainment",
-    "Explainers",
-]
-
-# ✅ Keep these SHORT because image providers have strict prompt limits
-BASE_NEGATIVE_PROMPT = (
-    "people, human, crowd, face, portrait, hands, fingers, extra limbs, "
-    "deformed, distorted, mutated, blurry, low quality, noise, jpeg artifacts, "
-    "text, logo, watermark, caption, signature, branding, "
-    "cartoon, anime, cgi, 3d render, plastic look"
+BASE_NEGATIVE = (
+    "people, human, face, hands, fingers, extra limbs, deformed, blurry, low quality, "
+    "text, logo, watermark, cartoon, anime, 3d render, plastic look"
 )
 
-# Hard limits to prevent 1024 prompt errors downstream
-MAX_PROMPT_LEN = 320
-MAX_NEGATIVE_LEN = 260
+MAX_PROMPT = 320
 
+def get_thumbnail_prompt(topic: str, category: str = None) -> dict:
+    """
+    Returns cinematic thumbnail prompt parameters with OpenAI → Grok fallback
+    """
+    topic = (topic or "").strip()
+    category = category if category in {
+        "News", "Science", "Tech", "Market", "Lifestyle",
+        "Health", "Sports", "Entertainment", "Explainers"
+    } else None
 
-def category_scene_hint(topic: str, category: str | None) -> str:
-    t = (topic or "").lower()
+    allow_humans = any(w in topic.lower() for w in [
+        "celebrity", "actor", "actress", "player", "protest", "rally", "people", "crowd"
+    ])
 
-    if category == "Science":
-        return "observatory, telescope, research lab, satellites, scientific instruments"
-    if category == "Tech":
-        return "data center, server racks, circuit board macro, futuristic skyline"
-    if category == "Market":
-        return "financial district skyline, trading screens (no readable text), corporate buildings"
-    if category == "Health":
-        return "hospital exterior, medical lab, ambulance bay, sterile lighting"
-    if category == "Sports":
-        return "stadium wide shot, floodlights, empty field, sports equipment foreground"
-    if category == "Entertainment":
-        return "cinema hall wide shot, stage lights, concert venue, empty red carpet"
-    if category == "Lifestyle":
-        return "city street, travel landscape, modern minimal interior, calm environment"
-    if category == "Explainers":
-        return "modern newsroom set, neutral studio, symbolic objects related to topic"
+    scene_hints = {
+        "Science": "research lab, observatory, scientific instruments",
+        "Tech": "circuit board macro, data center, futuristic tech",
+        "Market": "financial district skyline, stock exchange building",
+        "Health": "modern hospital exterior, medical lab",
+        "Sports": "empty stadium, floodlights, sports arena",
+        "Entertainment": "cinema hall, concert stage, theater",
+        "Lifestyle": "modern minimal interior, calm city street, travel landscape",
+        None: "wide cinematic landscape or cityscape, establishing shot, documentary mood"
+    }
+    scene = scene_hints.get(category, scene_hints[None])
 
-    if any(x in t for x in ["train", "rail", "metro", "station"]):
-        return "railway tracks, station platform, signal lights, wide perspective"
-    if any(x in t for x in ["flood", "storm", "earthquake", "disaster"]):
-        return "wide landscape, dramatic weather, damaged infrastructure, no people visible"
-    if any(x in t for x in ["war", "attack", "conflict", "missile"]):
-        return "distant skyline, smoke far away, dramatic clouds, no people visible"
+    system = "You create short cinematic thumbnail prompts for news. Return **only** clean JSON, no extra text."
 
-    return "realistic cityscape or landscape, wide establishing shot, documentary mood"
+    user = f"""Topic: {topic}
+Category: {category or 'General'}
 
+Create ONE short, strong, realistic cinematic thumbnail prompt.
+wide shot • 16:9 • 24mm lens • environment focused • no readable text
 
-class ImagePromptAgent:
-    def run(self, topic: str, category: str = None):
-        """
-        Output JSON:
-        {
-          "prompt": "...",
-          "negative_prompt": "...",
-          "aspect_ratio": "16:9",
-          "style": "cinematic realistic",
-          "humans_allowed": false
+Scene vibe: {scene}
+
+Humans: {"allowed" if allow_humans else "NOT allowed - avoid all people completely"}
+
+Return JSON only:
+{{
+  "prompt": str,
+  "negative_prompt": str,
+  "aspect_ratio": "16:9",
+  "style": "cinematic realistic",
+  "humans_allowed": bool
+}}""".strip()
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+
+    def normalize(result: dict, provider: str) -> dict:
+        prompt = (result.get("prompt") or "").strip()[:MAX_PROMPT]
+        neg = result.get("negative_prompt", "").strip()
+
+        negative = f"{BASE_NEGATIVE}, {neg}".strip(", ")
+
+        if not allow_humans and "people" not in negative.lower():
+            negative = "people, human, face, crowd, " + negative
+
+        return {
+            "prompt": prompt,
+            "negative_prompt": negative,
+            "aspect_ratio": "16:9",
+            "style": "cinematic realistic",
+            "humans_allowed": bool(allow_humans),
+            "provider": provider,
         }
-        """
 
-        if category and category not in ALLOWED_CATEGORIES:
-            category = None
-
-        # ✅ Default: no humans (prevents weird people)
-        humans_allowed = False
-
-        topic_l = (topic or "").lower()
-        if any(x in topic_l for x in ["celebrity", "actor", "actress", "player", "protest", "rally"]):
-            humans_allowed = True
-
-        scene_hint = category_scene_hint(topic, category)
-
-        system_message = (
-            "You generate short, scenic prompts for news thumbnail images.\n"
-            "Return STRICT JSON only.\n"
-            "Keep prompt short and cinematic.\n"
-            "Avoid humans unless humans_allowed is true.\n"
+    # ── Try OpenAI first ──
+    try:
+        resp = openai_client.chat.completions.create(
+            model="gpt-4o-mini",  # or your preferred model
+            temperature=0.3,
+            max_tokens=220,
+            messages=messages,
+            response_format={"type": "json_object"}
         )
 
-        user_message = f"""
-TOPIC: {topic}
-CATEGORY: {category or "Auto"}
+        data = json.loads(resp.choices[0].message.content)
+        return normalize(data, "openai")
 
-Generate ONE short cinematic realistic thumbnail prompt.
+    except (OpenAIError, json.JSONDecodeError, Exception) as e:
+        print(f"OpenAI failed: {type(e).__name__} – falling back to Grok...")
 
-Must include:
-- 16:9 landscape
-- wide establishing shot, 24mm
-- environment-focused
-- no readable text
+    # ── Fallback: xAI Grok ──
+    try:
+        resp = xai_client.chat.completions.create(
+            model="grok-4",           # or "grok-4" if available in 2026
+            temperature=0.3,
+            max_tokens=220,
+            messages=messages,
+            response_format={"type": "json_object"}
+        )
 
-Scene inspiration: {scene_hint}
+        data = json.loads(resp.choices[0].message.content)
+        return normalize(data, "xai-grok")
 
-Humans allowed: {str(humans_allowed).lower()}
-
-Return JSON with:
-prompt, negative_prompt, aspect_ratio, style, humans_allowed
-""".strip()
-
-        messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": user_message},
-        ]
-
-        schema = {
-            "name": "image_prompt",
-            "strict": True,
-            "schema": {
-                "type": "object",
-                "additionalProperties": False,
-                "properties": {
-                    "prompt": {"type": "string"},
-                    "negative_prompt": {"type": "string"},
-                    "aspect_ratio": {"type": "string"},
-                    "style": {"type": "string"},
-                    "humans_allowed": {"type": "boolean"},
-                },
-                "required": ["prompt", "negative_prompt", "aspect_ratio", "style", "humans_allowed"],
-            },
+    except Exception as fallback_e:
+        # Ultimate fallback - safe default
+        return {
+            "prompt": f"wide cinematic establishing shot of {topic}, documentary style, realistic, 16:9",
+            "negative_prompt": BASE_NEGATIVE,
+            "aspect_ratio": "16:9",
+            "style": "cinematic realistic",
+            "humans_allowed": allow_humans,
+            "provider": "fallback-default",
+            "error": str(fallback_e)[:80]
         }
-
-        def normalize_output(data: dict, provider: str):
-            prompt = (data.get("prompt") or "").strip().replace("\n", " ")
-            neg = (data.get("negative_prompt") or "").strip().replace("\n", " ")
-
-            # Force short prompt
-            if len(prompt) > MAX_PROMPT_LEN:
-                prompt = prompt[:MAX_PROMPT_LEN].rsplit(" ", 1)[0]
-
-            # Always enforce our base negatives
-            combined_neg = f"{BASE_NEGATIVE_PROMPT}, {neg}".strip(", ").strip()
-
-            if len(combined_neg) > MAX_NEGATIVE_LEN:
-                combined_neg = combined_neg[:MAX_NEGATIVE_LEN].rsplit(",", 1)[0]
-
-            # If humans not allowed, ensure human negatives exist
-            humans_allowed_out = bool(data.get("humans_allowed", False))
-            if not humans_allowed_out and "people" not in combined_neg.lower():
-                combined_neg = "people, human, face, " + combined_neg
-
-            return {
-                "prompt": prompt,
-                "negative_prompt": combined_neg,
-                "aspect_ratio": "16:9",
-                "style": "cinematic realistic",
-                "humans_allowed": humans_allowed_out,
-                "provider": provider,
-            }
-
-        # ── Primary attempt: OpenAI ──
-        try:
-            response = openai_client.chat.completions.create(
-                model=GPT_MODEL,
-                temperature=0.25,
-                max_tokens=300,
-                messages=messages,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": schema,
-                },
-            )
-
-            msg = response.choices[0].message
-            data = (
-                msg.parsed
-                if hasattr(msg, "parsed") and msg.parsed
-                else json.loads(msg.content)
-            )
-
-            return normalize_output(data, "openai")
-
-        except (OpenAIError, json.JSONDecodeError, KeyError, Exception) as e:
-            print(f"OpenAI failed: {e.__class__.__name__} – falling back to Grok...")
-
-        # ── Fallback: xAI Grok ──
-        FALLBACK_MODEL = "grok-4"
-        try:
-            response = xai_client.chat.completions.create(
-                model=FALLBACK_MODEL,
-                temperature=0.25,
-                max_tokens=300,
-                messages=messages,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": schema,
-                },
-            )
-
-            msg = response.choices[0].message
-            data = (
-                msg.parsed
-                if hasattr(msg, "parsed") and msg.parsed
-                else json.loads(msg.content)
-            )
-
-            return normalize_output(data, "xai-grok")
-
-        except Exception as fallback_e:
-            raise RuntimeError(
-                f"Both OpenAI and xAI fallback failed!\n"
-                f"OpenAI: {e}\n"
-                f"xAI:    {fallback_e}"
-            )
