@@ -9,7 +9,10 @@ from dotenv import load_dotenv
 import certifi
 from huggingface_hub import InferenceClient, InferenceTimeoutError
 from huggingface_hub.errors import HfHubHTTPError
-import google.generativeai as genai  # pip install google-generativeai
+
+# New unified Google GenAI SDK (replaces deprecated google.generativeai)
+from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -25,12 +28,15 @@ XAI_HEADERS = {
     "Content-Type": "application/json",
 }
 
-# ── Google Gemini ─────────────────────────────────────────────────────────────
+# ── Google Gemini (new SDK) ───────────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    GEMINI_MODEL = "gemini-2.5-flash-image"  # or "gemini-3-pro-image-preview" if you have access
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image")
 
+genai_client = None
+if GEMINI_API_KEY:
+    genai_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# ── Cloudinary ────────────────────────────────────────────────────────────────
 cloudinary.config(
     cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
     api_key=os.environ["CLOUDINARY_API_KEY"],
@@ -45,10 +51,10 @@ class ImageAgent:
     ) -> tuple[str, str]:
         """
         Generates landscape news-style image.
-        Priority order (2026):
-        1. Hugging Face - FLUX.1-schnell (fast & free)
-        2. Google Gemini - Nano Banana (good quality, limited free tier)
-        3. xAI Grok (fallback)
+        Priority order:
+        1) Hugging Face - FLUX.1-schnell
+        2) Google Gemini (new SDK)
+        3) xAI Grok
         """
 
         final_prompt = f"""
@@ -63,11 +69,11 @@ Photojournalism requirements:
 
 Negative prompt (if supported):
 {negative_prompt}
-"""
+""".strip()
 
         print("🖼️ Final image prompt length:", len(final_prompt))
 
-        # ── 1. PRIMARY: Hugging Face - FLUX.1-schnell ─────────────────────────────
+        # ── 1) PRIMARY: Hugging Face - FLUX.1-schnell ──────────────────────────
         print("Trying Hugging Face Inference (FLUX.1-schnell)...")
         try:
             image = HF_CLIENT.text_to_image(
@@ -78,68 +84,95 @@ Negative prompt (if supported):
                 num_inference_steps=22,
                 guidance_scale=6.0,
             )
-            print("HF FLUX succeeded!")
+            print("✅ HF FLUX succeeded!")
             url = self._process_and_upload(image, topic, "hf-flux")
             return url, "black-forest-labs/FLUX.1-schnell"
 
         except (HfHubHTTPError, InferenceTimeoutError, Exception) as e:
-            print(f"HF failed: {e.__class__.__name__} - {str(e)} → trying Gemini...")
+            print(f"❌ HF failed: {e.__class__.__name__} - {str(e)} → trying Gemini...")
 
-        # ── 2. FALLBACK: Google Gemini Nano Banana ────────────────────────────────
-        if GEMINI_API_KEY:
-            print("Trying Google Gemini (Nano Banana)...")
+        # ── 2) FALLBACK: Google Gemini (new SDK) ───────────────────────────────
+        if genai_client:
+            print(f"Trying Google Gemini ({GEMINI_MODEL})...")
             try:
-                model = genai.GenerativeModel(GEMINI_MODEL)
-                response = model.generate_content(final_prompt)
+                response = genai_client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=[final_prompt],
+                    # You can optionally add config:
+                    # config=types.GenerateContentConfig(
+                    #     temperature=0.6,
+                    # )
+                )
 
-                # Gemini usually returns inline image data in parts
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, 'inline_data') and part.inline_data:
-                        image_bytes = part.inline_data.data
-                        image = Image.open(BytesIO(image_bytes)).convert("RGB")
-                        print("Gemini succeeded!")
-                        url = self._process_and_upload(image, topic, "gemini-nano-banana")
-                        return url, "Google Gemini (Nano Banana)"
+                # Extract image bytes from Gemini response
+                image_bytes = None
 
-                raise ValueError("No image data found in Gemini response")
+                if getattr(response, "candidates", None):
+                    for cand in response.candidates:
+                        content = getattr(cand, "content", None)
+                        if not content:
+                            continue
+
+                        parts = getattr(content, "parts", []) or []
+                        for part in parts:
+                            inline_data = getattr(part, "inline_data", None)
+                            if inline_data and getattr(inline_data, "data", None):
+                                image_bytes = inline_data.data
+                                break
+                        if image_bytes:
+                            break
+
+                if not image_bytes:
+                    raise ValueError("No inline image bytes found in Gemini response.")
+
+                image = Image.open(BytesIO(image_bytes)).convert("RGB")
+                print("✅ Gemini succeeded!")
+                url = self._process_and_upload(image, topic, "gemini")
+                return url, f"Google Gemini ({GEMINI_MODEL})"
 
             except Exception as gemini_e:
-                print(f"Gemini failed: {str(gemini_e)} → falling back to xAI...")
+                print(f"❌ Gemini failed: {gemini_e} → falling back to xAI...")
 
-        # ── 3. FINAL FALLBACK: xAI Grok ───────────────────────────────────────────
-        print("Falling back to xAI Grok...")
-        try:
-            xai_payload = {
-                "model": "grok-2-image-1212",
-                "prompt": final_prompt,
-                "n": 1,
-                "response_format": "url",
-            }
-
-            response = requests.post(
-                XAI_URL,
-                headers=XAI_HEADERS,
-                json=xai_payload,
-                timeout=90,
-                verify=certifi.where(),
-            )
-            response.raise_for_status()
-
-            data = response.json()
-            temp_url = data["data"][0]["url"]
-
-            img_resp = requests.get(temp_url, timeout=45)
-            img_resp.raise_for_status()
-
-            image = Image.open(BytesIO(img_resp.content)).convert("RGB")
-            print("xAI Grok succeeded!")
-            url = self._process_and_upload(image, topic, "xai-grok")
-            return url, "xAI Grok (grok-2-image-1212)"
-
-        except Exception as e:
-            print("xAI Status:", getattr(e.response, 'status_code', 'N/A'))
-            print("xAI Details:", getattr(e.response, 'text', str(e)))
+        else:
+            print("⚠️ GEMINI_API_KEY not set → skipping Gemini, trying xAI...")
             raise RuntimeError(f"All providers failed! Last error: {e}") from e
+
+        # # ── 3) FINAL FALLBACK: xAI Grok ─────────────────────────────────────────
+        # print("Falling back to xAI Grok...")
+        # try:
+        #     xai_payload = {
+        #         "model": "grok-2-image-1212",
+        #         "prompt": final_prompt,
+        #         "n": 1,
+        #         "response_format": "url",
+        #     }
+
+        #     response = requests.post(
+        #         XAI_URL,
+        #         headers=XAI_HEADERS,
+        #         json=xai_payload,
+        #         timeout=90,
+        #         verify=certifi.where(),
+        #     )
+        #     response.raise_for_status()
+
+        #     data = response.json()
+        #     temp_url = data["data"][0]["url"]
+
+        #     img_resp = requests.get(temp_url, timeout=45)
+        #     img_resp.raise_for_status()
+
+        #     image = Image.open(BytesIO(img_resp.content)).convert("RGB")
+        #     print("✅ xAI Grok succeeded!")
+        #     url = self._process_and_upload(image, topic, "xai-grok")
+        #     return url, "xAI Grok (grok-2-image-1212)"
+
+        # except Exception as e:
+        #     status = getattr(getattr(e, "response", None), "status_code", "N/A")
+        #     text = getattr(getattr(e, "response", None), "text", str(e))
+        #     print("xAI Status:", status)
+        #     print("xAI Details:", text)
+        #     raise RuntimeError(f"All providers failed! Last error: {e}") from e
 
     def _to_16_9(
         self, img: Image.Image, target_w: int = 1344, target_h: int = 768
@@ -163,7 +196,7 @@ Negative prompt (if supported):
         return img
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
-        # Uncomment if you still want strict 16:9 crop/resize
+        # Uncomment if you want strict 16:9 crop/resize
         # image = self._to_16_9(image)
 
         enhancer = ImageEnhance.Sharpness(image)

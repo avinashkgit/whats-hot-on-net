@@ -13,9 +13,9 @@ gnews
 tenacity
 lxml_html_clean
 googlenewsdecoder
-google-generativeai
 newspaper4k
 python-slugify
 huggingface_hub
 tweepy
 firebase-admin
+google-genai
