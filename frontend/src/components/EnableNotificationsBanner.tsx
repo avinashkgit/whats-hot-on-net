@@ -22,7 +22,10 @@ export default function EnableNotificationsBanner() {
   useEffect(() => {
     const timer = setTimeout(() => {
       // only show banner if user hasn't decided yet
-      if (Notification.permission === "default") {
+      const token = localStorage.getItem("notification_token");
+
+      // Show banner if token missing (even if permission is granted)
+      if (!token && Notification.permission !== "denied") {
         setShow(true);
       }
     }, 5000); // 5 seconds
