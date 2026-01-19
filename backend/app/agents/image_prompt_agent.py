@@ -1,14 +1,26 @@
 import os
 import json
-import re
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
 load_dotenv()
 
 
 class ImagePromptAgent:
-    MAX_PROMPT_LEN = 950
+    """
+    Takes a topic + category and generates a SHORT cinematic image prompt
+    that can be directly passed to ImageAgent.run(prompt=...).
+
+    Output format:
+    {
+        "prompt": "...",
+        "negative_prompt": "...",
+        "humans_allowed": bool,
+        "provider": "openai" | "xai-grok" | "fallback-default"
+    }
+    """
+
+    MAX_PROMPT_LEN = 320
 
     ALLOWED_CATEGORIES = {
         "News",
@@ -22,139 +34,147 @@ class ImagePromptAgent:
         "Explainers",
     }
 
-    HUMAN_KEYWORDS = [
-        "celebrity",
-        "actor",
-        "actress",
-        "singer",
-        "politician",
-        "protest",
-        "rally",
-        "election",
-        "crowd",
-        "people",
-        "person",
-        "man",
-        "woman",
-        "child",
-        "children",
-        "students",
-        "workers",
-        "fans",
-        "public",
-        "police",
-        "soldiers",
-        "refugees",
-        "tourists",
-        "audience",
-        "team",
-        "coach",
-        "player",
-    ]
+    BASE_NEGATIVE = (
+        "people, human, face, hands, fingers, extra limbs, deformed, blurry, low quality, "
+        "text, logo, watermark, caption, cartoon, anime, 3d render, plastic look"
+    )
 
     def __init__(self, openai_model: str = None, grok_model: str = None):
         self.openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
         self.xai_client = OpenAI(
-            api_key=os.environ.get("XAI_API_KEY"), base_url="https://api.x.ai/v1"
+            api_key=os.environ.get("XAI_API_KEY"),
+            base_url="https://api.x.ai/v1",
         )
 
         self.openai_model = openai_model or os.environ.get(
             "OPENAI_PROMPT_MODEL", "gpt-4o-mini"
         )
-        self.grok_model = grok_model or os.environ.get("XAI_PROMPT_MODEL", "grok-beta")
+        self.grok_model = grok_model or os.environ.get("XAI_PROMPT_MODEL", "grok-4")
 
-    def _topic_allows_humans(self, topic: str) -> bool:
-        t = (topic or "").lower()
-        for kw in self.HUMAN_KEYWORDS:
-            if re.search(rf"\b{re.escape(kw)}\b", t):
-                return True
-        return False
-
-    def run(self, topic: str, category: str | None = None) -> dict:
-        topic = (topic or "").strip()[:240]
+    def run(self, topic: str, category: str = None) -> dict:
+        topic = (topic or "").strip()
         if not topic:
-            topic = "breaking news"
-
-        category = category if category in self.ALLOWED_CATEGORIES else "News"
-
-        allow_humans = self._topic_allows_humans(topic)
-
-        base_negatives = "cgi, 3d render, plastic, airbrushed, cartoon, text, watermark, logo, blurry, extra limbs"
-        if not allow_humans:
-            base_negatives = f"people, human, face, portrait, {base_negatives}"
-
-        system_msg = (
-            "You are a News Photo Editor. Create a short, highly realistic image prompt for a thumbnail. "
-            "Use photography terms like '24mm lens', 'f/8', 'raw photo'. "
-            'Return ONLY valid JSON: {"prompt": "...", "negative_prompt": "..."}'
-        )
-
-        user_msg = f"""
-Topic: {topic}
-Category: {category}
-Humans: {"Allowed (candid/unposed)" if allow_humans else "STRICTLY FORBIDDEN (empty scene)"}
-
-Requirements:
-- 16:9 aspect ratio wide shot
-- Documentary / photojournalism style
-- Environment-focused
-- No text in the image
-
-Return JSON: {{"prompt": "string", "negative_prompt": "string"}}
-""".strip()
-
-        def finalize_data(data: dict, provider: str) -> dict:
-            p = (data.get("prompt") or "").strip()
-            n = (data.get("negative_prompt") or "").strip()
-
-            if not p:
-                p = f"wide documentary photo of {topic}"
-
-            full_prompt = f"Shot on 35mm film, raw photo, {p}, 16:9 wide shot, cinematic natural lighting"
-            full_negative = f"{base_negatives}"
-            if n:
-                full_negative = f"{full_negative}, {n}"
-
             return {
-                "prompt": full_prompt[: self.MAX_PROMPT_LEN],
-                "negative_prompt": full_negative[:300],
-                "provider": provider,
-                "topic": topic,
-                "category": category,
-                "allow_humans": allow_humans,
+                "prompt": "wide cinematic establishing shot, documentary style, realistic, 16:9",
+                "negative_prompt": self.BASE_NEGATIVE,
+                "humans_allowed": False,
+                "provider": "fallback-default",
+                "error": "empty topic",
             }
 
-        # ── Fallback Chain: OpenAI -> Grok -> Static ──
+        category = category if category in self.ALLOWED_CATEGORIES else None
+
+        allow_humans = any(
+            w in topic.lower()
+            for w in [
+                "celebrity",
+                "actor",
+                "actress",
+                "player",
+                "protest",
+                "rally",
+                "people",
+                "crowd",
+            ]
+        )
+
+        scene_hints = {
+            "Science": "research lab, observatory, scientific instruments",
+            "Tech": "circuit board macro, data center, futuristic tech",
+            "Market": "financial district skyline, stock exchange building",
+            "Health": "modern hospital exterior, medical lab",
+            "Sports": "empty stadium, floodlights, sports arena",
+            "Entertainment": "cinema hall, concert stage, theater",
+            "Lifestyle": "modern minimal interior, calm city street, travel landscape",
+            None: "wide cinematic landscape or cityscape, establishing shot, documentary mood",
+        }
+        scene = scene_hints.get(category, scene_hints[None])
+
+        system = (
+            "You generate short cinematic realistic image prompts for news thumbnails. "
+            "Return ONLY valid JSON. No markdown. No extra text."
+        )
+
+        user = f"""
+Topic: {topic}
+Category: {category or "General"}
+
+Goal:
+- Create ONE cinematic, realistic, news-thumbnail image prompt.
+- Must be usable directly as an image generation prompt.
+- 16:9 landscape, wide establishing shot, 24mm lens look.
+- Environment-focused (NOT close-up).
+- No readable text anywhere.
+
+Scene vibe hints: {scene}
+
+Humans: {"allowed" if allow_humans else "NOT allowed (avoid people completely)"}
+
+Return JSON only:
+{{
+  "prompt": "string",
+  "negative_prompt": "string"
+}}
+""".strip()
+
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+
+        def normalize(data: dict, provider: str) -> dict:
+            prompt = (data.get("prompt") or "").strip()
+            neg = (data.get("negative_prompt") or "").strip()
+
+            prompt = prompt[: self.MAX_PROMPT_LEN].strip()
+
+            negative = f"{self.BASE_NEGATIVE}, {neg}".strip(", ")
+
+            if not allow_humans and "people" not in negative.lower():
+                negative = "people, human, face, crowd, " + negative
+
+            return {
+                "prompt": prompt,
+                "negative_prompt": negative,
+                "humans_allowed": allow_humans,
+                "provider": provider,
+            }
+
+        # ── Try OpenAI first ──
         try:
             resp = self.openai_client.chat.completions.create(
                 model=self.openai_model,
-                messages=[
-                    {"role": "system", "content": system_msg},
-                    {"role": "user", "content": user_msg},
-                ],
-                response_format={"type": "json_object"},
                 temperature=0.3,
+                max_tokens=220,
+                messages=messages,
+                response_format={"type": "json_object"},
             )
-            return finalize_data(json.loads(resp.choices[0].message.content), "openai")
-        except Exception:
-            try:
-                resp = self.xai_client.chat.completions.create(
-                    model=self.grok_model,
-                    messages=[
-                        {"role": "system", "content": system_msg},
-                        {"role": "user", "content": user_msg},
-                    ],
-                    response_format={"type": "json_object"},
-                    temperature=0.3,
-                )
-                return finalize_data(
-                    json.loads(resp.choices[0].message.content), "xai-grok"
-                )
-            except Exception:
-                return finalize_data(
-                    {
-                        "prompt": f"wide cinematic documentary photo of {topic}",
-                        "negative_prompt": "",
-                    },
-                    "fallback-static",
-                )
+            data = json.loads(resp.choices[0].message.content)
+            return normalize(data, "openai")
+
+        except (OpenAIError, json.JSONDecodeError, Exception) as e:
+            print(
+                f"⚠️ OpenAI prompt generation failed: {type(e).__name__} → fallback to Grok"
+            )
+
+        # ── Fallback to Grok ──
+        try:
+            resp = self.xai_client.chat.completions.create(
+                model=self.grok_model,
+                temperature=0.3,
+                max_tokens=220,
+                messages=messages,
+                response_format={"type": "json_object"},
+            )
+            data = json.loads(resp.choices[0].message.content)
+            return normalize(data, "xai-grok")
+
+        except Exception as e:
+            return {
+                "prompt": f"wide cinematic establishing shot of {topic}, documentary style, realistic, 16:9",
+                "negative_prompt": self.BASE_NEGATIVE,
+                "humans_allowed": allow_humans,
+                "provider": "fallback-default",
+                "error": str(e)[:120],
+            }

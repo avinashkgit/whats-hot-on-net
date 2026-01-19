@@ -71,20 +71,21 @@ def run():
         category = get_or_create_category(db, name=category_name)
 
         # =========================
-        # 6️⃣ Generate scenic image prompt (NEW)
+        # 6️⃣ Generate image prompt
         # =========================
         prompt_data = ImagePromptAgent().run(
-            topic=summary,  # use rewritten title for best results
+            topic=title,  # ✅ better than summary
             category=category_name,
         )
 
         # =========================
-        # 7️⃣ Generate image using prompt (UPDATED)
+        # 7️⃣ Generate image
         # =========================
         image_url, model = ImageAgent().run(
             prompt=prompt_data["prompt"],
             negative_prompt=prompt_data["negative_prompt"],
             topic=topic,
+            humans_allowed=prompt_data["humans_allowed"],
         )
 
         # =========================
@@ -107,7 +108,6 @@ def run():
         # =========================
         # 9️⃣ Post to X
         # =========================
-        # tweet_id = XPosterAgent().post_article(summary, slug)
         tweet_id = XPosterAgent().post_article_with_image_url(summary, slug, image_url)
         print("✅ Tweet posted | tweet_id =", tweet_id)
 
@@ -119,7 +119,6 @@ def run():
 
         article_url = f"https://hotonnet.com/article/{slug}"
 
-        # ✅ Keep summary short (FCM data size safety)
         short_summary = summary.strip()
         if len(short_summary) > 120:
             short_summary = short_summary[:110] + "..."
@@ -137,8 +136,8 @@ def run():
 
         push_resp = send_push_to_tokens(
             tokens=tokens,
-            title=title,  # ✅ article title
-            body=short_summary,  # ✅ short summary
+            title=title,
+            body=short_summary,
             image_url=image_url,
             url=article_url,
         )
