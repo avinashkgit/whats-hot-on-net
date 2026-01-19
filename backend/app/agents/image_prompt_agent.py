@@ -36,7 +36,7 @@ class ImagePromptAgent:
 
     BASE_NEGATIVE = (
         "people, human, face, hands, fingers, extra limbs, deformed, blurry, low quality, "
-        "text, logo, watermark, caption, cartoon, anime, 3d render, plastic look"
+        "watermark, caption, cartoon, anime, 3d render, plastic look"
     )
 
     def __init__(self, openai_model: str = None, grok_model: str = None):
