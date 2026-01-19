@@ -51,7 +51,7 @@ class ImageAgent:
         prompt: str,
         negative_prompt: str = "",
         topic: str = "news",
-        humans_allowed: bool = False,  # ✅ NEW
+        humans_allowed: bool = False,
     ) -> tuple[str, str]:
         """
         Generates landscape news-style image.
@@ -61,50 +61,63 @@ class ImageAgent:
         3) xAI Grok
         """
 
-        # ✅ Strong baseline "blocklist" to reduce weird people/artifacts
+        # ⚠️ Hard limit safety (xAI errors above 1024 chars)
+        MAX_PROMPT_LEN = 950
+
         base_blocklist = [
-            "text", "captions", "subtitles", "watermark", "logo", "branding", "signature",
-            "poster", "billboard", "typography", "letters", "numbers",
-            "low quality", "blurry", "grainy", "jpeg artifacts", "noise",
-            "distorted objects", "floating objects", "duplicated objects", "broken geometry",
-            "cartoon", "anime", "illustration", "cgi", "3d render", "plastic look",
-            "extra limbs", "extra fingers", "deformed anatomy", "mutated body",
+            "text",
+            "logo",
+            "watermark",
+            "caption",
+            "branding",
+            "blurry",
+            "low quality",
+            "jpeg artifacts",
+            "noise",
+            "distorted",
+            "duplicate",
+            "floating objects",
+            "cartoon",
+            "anime",
+            "cgi",
+            "3d render",
+            "extra limbs",
+            "extra fingers",
+            "deformed anatomy",
         ]
 
         if not humans_allowed:
-            base_blocklist += [
-                "people", "human", "crowd", "face", "faces", "portrait",
-                "hands", "fingers", "mannequin", "doll", "silhouette",
-            ]
-        else:
-            # If humans are allowed, still avoid close-up faces
-            base_blocklist += [
-                "close-up face", "celebrity likeness", "portrait framing",
-            ]
+            base_blocklist += ["people", "human", "crowd", "face", "portrait", "hands"]
 
-        # Merge incoming negative prompt (from ImagePromptAgent)
+        # Keep negative short
         incoming_neg = ", ".join(
             [x.strip() for x in (negative_prompt or "").split(",") if x.strip()]
         )
+        if len(incoming_neg) > 180:
+            incoming_neg = incoming_neg[:180].rsplit(",", 1)[0]
 
-        # ✅ Put constraints + negatives INSIDE prompt (FLUX obeys this better)
-        final_prompt = f"""
-{prompt}
+        # Short rules (single-line to save tokens)
+        hard_rules = (
+            "16:9 landscape, wide establishing shot, 24mm, cinematic realistic photojournalism, "
+            "environment-focused, no close-up, no readable text."
+        )
+        humans_rule = (
+            "EMPTY SCENE, no humans." if not humans_allowed else "No close-up faces."
+        )
 
-STRICT PHOTOJOURNALISM THUMBNAIL RULES:
-- 16:9 landscape only
-- wide establishing shot, wide-angle lens (24mm)
-- cinematic realistic lighting, documentary style
-- environment visible, NOT close-up
-- clean realistic composition, no surreal elements
-- no readable text anywhere
+        final_prompt = (
+            f"{prompt.strip()} | {hard_rules} | {humans_rule} | "
+            f"avoid: {', '.join(base_blocklist)}"
+        )
 
-HUMANS POLICY:
-- {"EMPTY SCENE: no humans or animals visible" if not humans_allowed else "If people appear, they must be distant and not the focus"}
+        if incoming_neg:
+            final_prompt += f", {incoming_neg}"
 
-DO NOT INCLUDE:
-{", ".join(base_blocklist)}{(", " + incoming_neg) if incoming_neg else ""}
-""".strip()
+        final_prompt = final_prompt.strip()
+
+        # Final trim to avoid 1024 overflow
+        if len(final_prompt) > MAX_PROMPT_LEN:
+            final_prompt = final_prompt[:MAX_PROMPT_LEN].rsplit(" ", 1)[0]
 
         print("🖼️ Final image prompt length:", len(final_prompt))
 
@@ -116,8 +129,8 @@ DO NOT INCLUDE:
                 model="black-forest-labs/FLUX.1-schnell",
                 width=1344,
                 height=768,
-                num_inference_steps=26,  # ✅ improved adherence
-                guidance_scale=7.0,      # ✅ improved adherence
+                num_inference_steps=26,
+                guidance_scale=7.0,
             )
             print("✅ HF FLUX succeeded!")
             url = self._process_and_upload(image, topic, "hf-flux")
@@ -210,7 +223,7 @@ DO NOT INCLUDE:
         return img
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
-        # ✅ ALWAYS enforce strict 16:9 crop/resize
+        # ✅ Always enforce strict 16:9 crop/resize (prevents stretching weirdness)
         # image = self._to_16_9(image)
 
         enhancer = ImageEnhance.Sharpness(image)

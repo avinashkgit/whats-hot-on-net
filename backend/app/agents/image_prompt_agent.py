@@ -6,8 +6,10 @@ from constants import GPT_MODEL
 
 load_dotenv()
 
+# Primary client (OpenAI)
 openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
+# Fallback client (xAI Grok)
 xai_client = OpenAI(
     api_key=os.environ["XAI_API_KEY"],
     base_url="https://api.x.ai/v1",
@@ -25,57 +27,52 @@ ALLOWED_CATEGORIES = [
     "Explainers",
 ]
 
-# ✅ Strong default negatives (stable + consistent)
-BASE_NEGATIVE_PROMPT = """
-people, human, crowd, face, faces, portrait, selfie, close-up,
-hands, fingers, extra fingers, extra limbs, deformed body, mutated, distorted anatomy,
-cartoon, anime, illustration, CGI, 3D render, plastic look,
-text, caption, subtitles, watermark, logo, signature, branding, poster,
-low quality, blurry, grainy, noise, jpeg artifacts, oversaturated,
-weird objects, floating objects, duplicated objects, broken geometry
-""".strip()
+# ✅ Keep these SHORT because image providers have strict prompt limits
+BASE_NEGATIVE_PROMPT = (
+    "people, human, crowd, face, portrait, hands, fingers, extra limbs, "
+    "deformed, distorted, mutated, blurry, low quality, noise, jpeg artifacts, "
+    "text, logo, watermark, caption, signature, branding, "
+    "cartoon, anime, cgi, 3d render, plastic look"
+)
+
+# Hard limits to prevent 1024 prompt errors downstream
+MAX_PROMPT_LEN = 320
+MAX_NEGATIVE_LEN = 260
 
 
 def category_scene_hint(topic: str, category: str | None) -> str:
-    """
-    Adds category-aware environment guidance.
-    We avoid "people doing X" scenes because that creates weird humans.
-    """
     t = (topic or "").lower()
 
     if category == "Science":
-        return "scientific environment: observatory, lab equipment, telescope, research facility, satellites, clean futuristic infrastructure"
+        return "observatory, telescope, research lab, satellites, scientific instruments"
     if category == "Tech":
-        return "technology environment: modern data center, server racks, circuit boards, AI-themed abstract light trails, futuristic city skyline"
+        return "data center, server racks, circuit board macro, futuristic skyline"
     if category == "Market":
-        return "finance environment: city financial district skyline, stock market screens (unreadable), modern corporate buildings, trading floor wide shot"
+        return "financial district skyline, trading screens (no readable text), corporate buildings"
     if category == "Health":
-        return "health environment: hospital exterior, ambulance bay, medical lab, pharmacy shelves (no readable labels), clean sterile lighting"
+        return "hospital exterior, medical lab, ambulance bay, sterile lighting"
     if category == "Sports":
-        return "sports environment: stadium wide shot, floodlights, empty field/court, sports equipment in foreground, dramatic sky"
+        return "stadium wide shot, floodlights, empty field, sports equipment foreground"
     if category == "Entertainment":
-        return "entertainment environment: cinema hall wide shot, stage lighting, concert venue, red carpet area without people"
+        return "cinema hall wide shot, stage lights, concert venue, empty red carpet"
     if category == "Lifestyle":
-        return "lifestyle environment: city street, café exterior, modern home interior wide shot, travel landscape, minimal objects"
+        return "city street, travel landscape, modern minimal interior, calm environment"
     if category == "Explainers":
-        return "neutral explainer environment: abstract newsroom set, modern studio, minimal clean background, symbolic objects related to topic"
+        return "modern newsroom set, neutral studio, symbolic objects related to topic"
 
-    # Auto-detect fallback hints from topic keywords
     if any(x in t for x in ["train", "rail", "metro", "station"]):
-        return "transport environment: railway tracks, station platforms, signal lights, maintenance equipment, wide perspective"
-    if any(x in t for x in ["war", "attack", "conflict", "missile"]):
-        return "serious news environment: distant skyline, smoke in background, military vehicles far away, dramatic clouds (no people visible)"
+        return "railway tracks, station platform, signal lights, wide perspective"
     if any(x in t for x in ["flood", "storm", "earthquake", "disaster"]):
-        return "disaster environment: wide landscape, damaged roads/buildings, emergency lights far away, dramatic weather (no people visible)"
+        return "wide landscape, dramatic weather, damaged infrastructure, no people visible"
+    if any(x in t for x in ["war", "attack", "conflict", "missile"]):
+        return "distant skyline, smoke far away, dramatic clouds, no people visible"
 
-    return "news environment: realistic cityscape, infrastructure, landscape, weather, wide establishing shot"
+    return "realistic cityscape or landscape, wide establishing shot, documentary mood"
 
 
 class ImagePromptAgent:
     def run(self, topic: str, category: str = None):
         """
-        Returns scenic image prompt for article thumbnail generation.
-
         Output JSON:
         {
           "prompt": "...",
@@ -86,61 +83,43 @@ class ImagePromptAgent:
         }
         """
 
-        # Normalize category
         if category and category not in ALLOWED_CATEGORIES:
             category = None
 
-        # ✅ Default: disallow humans (prevents weird people)
+        # ✅ Default: no humans (prevents weird people)
         humans_allowed = False
 
-        # If topic clearly requires humans, allow them (rare)
-        # You can tune this list based on your website needs.
         topic_l = (topic or "").lower()
-        if any(x in topic_l for x in ["election rally", "celebrity", "actor", "player interview", "protest", "crowd"]):
+        if any(x in topic_l for x in ["celebrity", "actor", "actress", "player", "protest", "rally"]):
             humans_allowed = True
 
         scene_hint = category_scene_hint(topic, category)
 
         system_message = (
-            "You are an Image Prompt Writer Agent for a news/articles website.\n"
-            "You write prompts for image generation models (FLUX / Gemini / Grok).\n"
-            "Your job: produce a single clean, scenic, wide cinematic thumbnail prompt.\n"
-            "Avoid humans unless explicitly allowed.\n"
-            "Return STRICT JSON only. No markdown. No extra text.\n"
+            "You generate short, scenic prompts for news thumbnail images.\n"
+            "Return STRICT JSON only.\n"
+            "Keep prompt short and cinematic.\n"
+            "Avoid humans unless humans_allowed is true.\n"
         )
 
         user_message = f"""
-Create ONE best prompt for a news/blog thumbnail image.
+TOPIC: {topic}
+CATEGORY: {category or "Auto"}
 
-TOPIC:
-{topic}
+Generate ONE short cinematic realistic thumbnail prompt.
 
-CATEGORY:
-{category or "Auto-detect"}
+Must include:
+- 16:9 landscape
+- wide establishing shot, 24mm
+- environment-focused
+- no readable text
 
-SCENE HINT:
-{scene_hint}
+Scene inspiration: {scene_hint}
 
-GOAL:
-A wide scenic cinematic realistic photojournalism image that represents the topic clearly.
+Humans allowed: {str(humans_allowed).lower()}
 
-HARD RULES:
-- Aspect ratio must be 16:9 landscape
-- Establishing shot, wide-angle lens, 24mm, deep depth of field
-- No close-up portraits, no faces
-- No text/logos/watermarks
-- Keep it realistic and clean (no surreal artifacts)
-
-HUMANS POLICY:
-- humans_allowed = {str(humans_allowed).lower()}
-- If humans_allowed is false: the scene must contain NO people at all
-
-OUTPUT JSON FIELDS:
-- prompt: single line prompt
-- negative_prompt: a strong comma-separated list
-- aspect_ratio: "16:9"
-- style: "cinematic realistic"
-- humans_allowed: true/false
+Return JSON with:
+prompt, negative_prompt, aspect_ratio, style, humans_allowed
 """.strip()
 
         messages = [
@@ -166,35 +145,39 @@ OUTPUT JSON FIELDS:
         }
 
         def normalize_output(data: dict, provider: str):
-            # Ensure stable output
-            prompt = data["prompt"].strip().replace("\n", " ")
-            style = data["style"].strip()
-            aspect_ratio = data["aspect_ratio"].strip()
+            prompt = (data.get("prompt") or "").strip().replace("\n", " ")
+            neg = (data.get("negative_prompt") or "").strip().replace("\n", " ")
 
-            # ✅ Force our baseline negatives (LLM can add more, but can't remove these)
-            model_negative = (data.get("negative_prompt") or "").strip()
-            combined_negative = f"{BASE_NEGATIVE_PROMPT}, {model_negative}".strip(", ").strip()
+            # Force short prompt
+            if len(prompt) > MAX_PROMPT_LEN:
+                prompt = prompt[:MAX_PROMPT_LEN].rsplit(" ", 1)[0]
 
-            # Small safety: if humans not allowed, ensure human terms exist in negative
-            if not data.get("humans_allowed", False):
-                if "people" not in combined_negative.lower():
-                    combined_negative = "people, human, crowd, face, " + combined_negative
+            # Always enforce our base negatives
+            combined_neg = f"{BASE_NEGATIVE_PROMPT}, {neg}".strip(", ").strip()
+
+            if len(combined_neg) > MAX_NEGATIVE_LEN:
+                combined_neg = combined_neg[:MAX_NEGATIVE_LEN].rsplit(",", 1)[0]
+
+            # If humans not allowed, ensure human negatives exist
+            humans_allowed_out = bool(data.get("humans_allowed", False))
+            if not humans_allowed_out and "people" not in combined_neg.lower():
+                combined_neg = "people, human, face, " + combined_neg
 
             return {
                 "prompt": prompt,
-                "negative_prompt": combined_negative,
-                "aspect_ratio": aspect_ratio if aspect_ratio else "16:9",
-                "style": style if style else "cinematic realistic",
-                "humans_allowed": bool(data.get("humans_allowed", False)),
+                "negative_prompt": combined_neg,
+                "aspect_ratio": "16:9",
+                "style": "cinematic realistic",
+                "humans_allowed": humans_allowed_out,
                 "provider": provider,
             }
 
-        # ── Primary: OpenAI ─────────────────────────────────────────────────────
+        # ── Primary attempt: OpenAI ──
         try:
             response = openai_client.chat.completions.create(
                 model=GPT_MODEL,
-                temperature=0.25,  # lower = more consistent
-                max_tokens=450,
+                temperature=0.25,
+                max_tokens=300,
                 messages=messages,
                 response_format={
                     "type": "json_schema",
@@ -214,13 +197,13 @@ OUTPUT JSON FIELDS:
         except (OpenAIError, json.JSONDecodeError, KeyError, Exception) as e:
             print(f"OpenAI failed: {e.__class__.__name__} – falling back to Grok...")
 
-        # ── Fallback: xAI Grok ─────────────────────────────────────────────────
+        # ── Fallback: xAI Grok ──
         FALLBACK_MODEL = "grok-4"
         try:
             response = xai_client.chat.completions.create(
                 model=FALLBACK_MODEL,
                 temperature=0.25,
-                max_tokens=450,
+                max_tokens=300,
                 messages=messages,
                 response_format={
                     "type": "json_schema",
