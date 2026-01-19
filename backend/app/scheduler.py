@@ -85,7 +85,6 @@ def run():
             prompt=prompt_data["prompt"],
             negative_prompt=prompt_data["negative_prompt"],
             topic=topic,
-            humans_allowed=prompt_data["humans_allowed"],
         )
 
         # =========================
