@@ -96,36 +96,19 @@ Negative prompt (if supported):
             print(f"Trying Google Gemini ({GEMINI_MODEL})...")
             try:
                 response = genai_client.models.generate_content(
-                    model=GEMINI_MODEL,
+                    model="gemini-2.5-flash-image",
                     contents=[final_prompt],
-                    # You can optionally add config:
-                    # config=types.GenerateContentConfig(
-                    #     temperature=0.6,
-                    # )
+                    config=types.GenerateContentConfig(
+                        response_modalities=[
+                            "IMAGE"
+                        ],  # Ensures model generates an image
+                        image_config=types.ImageConfig(aspect_ratio="16:9"),
+                    ),
                 )
 
-                # Extract image bytes from Gemini response
-                image_bytes = None
+                # New SDK helper: directly extracts and converts the first image part
+                image = response.candidates[0].content.parts[0].as_image()
 
-                if getattr(response, "candidates", None):
-                    for cand in response.candidates:
-                        content = getattr(cand, "content", None)
-                        if not content:
-                            continue
-
-                        parts = getattr(content, "parts", []) or []
-                        for part in parts:
-                            inline_data = getattr(part, "inline_data", None)
-                            if inline_data and getattr(inline_data, "data", None):
-                                image_bytes = inline_data.data
-                                break
-                        if image_bytes:
-                            break
-
-                if not image_bytes:
-                    raise ValueError("No inline image bytes found in Gemini response.")
-
-                image = Image.open(BytesIO(image_bytes)).convert("RGB")
                 print("✅ Gemini succeeded!")
                 url = self._process_and_upload(image, topic, "gemini")
                 return url, f"Google Gemini ({GEMINI_MODEL})"
