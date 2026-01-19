@@ -110,7 +110,8 @@ def run():
         # =========================
         # 9️⃣ Post to X
         # =========================
-        tweet_id = XPosterAgent().post_article(summary, slug)
+        # tweet_id = XPosterAgent().post_article(summary, slug)
+        tweet_id = XPosterAgent().post_article_with_image(summary, slug, image_url)
         print("✅ Tweet posted | tweet_id =", tweet_id)
 
         tokens = get_active_notification_tokens(db)
