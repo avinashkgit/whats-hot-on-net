@@ -16,6 +16,12 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log("FCM BG payload:", payload);
 
+  // ✅ If message already contains notification payload,
+  // browser will auto show it → skip manual showNotification()
+  if (payload?.notification) {
+    return;
+  }
+
   const title = payload?.data?.title || "HotOnNet";
   const body = payload?.data?.body || "New update available";
   const url = payload?.data?.url || "https://hotonnet.com";
