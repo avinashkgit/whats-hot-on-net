@@ -47,7 +47,11 @@ cloudinary.config(
 
 class ImageAgent:
     def run(
-        self, prompt: str, negative_prompt: str = "", topic: str = "news"
+        self,
+        prompt: str,
+        negative_prompt: str = "",
+        topic: str = "news",
+        humans_allowed: bool = False,  # ✅ NEW
     ) -> tuple[str, str]:
         """
         Generates landscape news-style image.
@@ -57,18 +61,49 @@ class ImageAgent:
         3) xAI Grok
         """
 
+        # ✅ Strong baseline "blocklist" to reduce weird people/artifacts
+        base_blocklist = [
+            "text", "captions", "subtitles", "watermark", "logo", "branding", "signature",
+            "poster", "billboard", "typography", "letters", "numbers",
+            "low quality", "blurry", "grainy", "jpeg artifacts", "noise",
+            "distorted objects", "floating objects", "duplicated objects", "broken geometry",
+            "cartoon", "anime", "illustration", "cgi", "3d render", "plastic look",
+            "extra limbs", "extra fingers", "deformed anatomy", "mutated body",
+        ]
+
+        if not humans_allowed:
+            base_blocklist += [
+                "people", "human", "crowd", "face", "faces", "portrait",
+                "hands", "fingers", "mannequin", "doll", "silhouette",
+            ]
+        else:
+            # If humans are allowed, still avoid close-up faces
+            base_blocklist += [
+                "close-up face", "celebrity likeness", "portrait framing",
+            ]
+
+        # Merge incoming negative prompt (from ImagePromptAgent)
+        incoming_neg = ", ".join(
+            [x.strip() for x in (negative_prompt or "").split(",") if x.strip()]
+        )
+
+        # ✅ Put constraints + negatives INSIDE prompt (FLUX obeys this better)
         final_prompt = f"""
-16:9 LANDSCAPE ONLY.
 {prompt}
 
-Photojournalism requirements:
-- wide establishing shot
-- cinematic realistic lighting
-- environment visible, not close-up
-- no text, no logos, no watermark
+STRICT PHOTOJOURNALISM THUMBNAIL RULES:
+- 16:9 landscape only
+- wide establishing shot, wide-angle lens (24mm)
+- cinematic realistic lighting, documentary style
+- environment visible, NOT close-up
+- clean realistic composition, no surreal elements
+- no readable text anywhere
 
-Negative prompt (if supported):
-{negative_prompt}
+HUMANS POLICY:
+- {"EMPTY SCENE: no humans or animals visible" if not humans_allowed else "If people appear, they must be distant and not the focus"}
+
+DO NOT INCLUDE:
+{", ".join(base_blocklist)}{(", " + incoming_neg) if incoming_neg else ""}
 """.strip()
 
         print("🖼️ Final image prompt length:", len(final_prompt))
@@ -81,8 +116,8 @@ Negative prompt (if supported):
                 model="black-forest-labs/FLUX.1-schnell",
                 width=1344,
                 height=768,
-                num_inference_steps=22,
-                guidance_scale=6.0,
+                num_inference_steps=26,  # ✅ improved adherence
+                guidance_scale=7.0,      # ✅ improved adherence
             )
             print("✅ HF FLUX succeeded!")
             url = self._process_and_upload(image, topic, "hf-flux")
@@ -96,17 +131,14 @@ Negative prompt (if supported):
             print(f"Trying Google Gemini ({GEMINI_MODEL})...")
             try:
                 response = genai_client.models.generate_content(
-                    model="gemini-2.5-flash-image",
+                    model=GEMINI_MODEL,
                     contents=[final_prompt],
                     config=types.GenerateContentConfig(
-                        response_modalities=[
-                            "IMAGE"
-                        ],  # Ensures model generates an image
+                        response_modalities=["IMAGE"],
                         image_config=types.ImageConfig(aspect_ratio="16:9"),
                     ),
                 )
 
-                # New SDK helper: directly extracts and converts the first image part
                 image = response.candidates[0].content.parts[0].as_image()
 
                 print("✅ Gemini succeeded!")
@@ -178,7 +210,7 @@ Negative prompt (if supported):
         return img
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
-        # Uncomment if you want strict 16:9 crop/resize
+        # ✅ ALWAYS enforce strict 16:9 crop/resize
         # image = self._to_16_9(image)
 
         enhancer = ImageEnhance.Sharpness(image)
