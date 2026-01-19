@@ -49,7 +49,7 @@ class ImagePromptAgent:
         )
         self.grok_model = grok_model or os.environ.get("XAI_PROMPT_MODEL", "grok-4")
 
-    def generate(
+    def run(
         self,
         topic: str,
         category: str | None = None,

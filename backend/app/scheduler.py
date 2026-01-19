@@ -78,9 +78,6 @@ def run():
             category=category_name,
         )
 
-        final_prompt = prompt_data["prompt"]
-        negative_prompt = prompt_data["negative_prompt"]
-
         # =========================
         # 7️⃣ Generate image using prompt (UPDATED)
         # =========================
