@@ -14,15 +14,18 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log(payload);
+  console.log("FCM BG payload:", payload);
+
   const title = payload?.data?.title || "HotOnNet";
   const body = payload?.data?.body || "New update available";
+  const url = payload?.data?.url || "https://hotonnet.com";
+  const image = payload?.data?.image || "";
 
   self.registration.showNotification(title, {
     body,
     icon: "/icons/web-app-manifest-192x192.png",
-    image: payload?.data?.image || undefined,
-    data: { url: payload?.data?.url || "https://hotonnet.com" },
+    image: image || undefined,
+    data: { url },
   });
 });
 
