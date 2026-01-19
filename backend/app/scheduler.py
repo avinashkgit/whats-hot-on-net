@@ -85,9 +85,10 @@ def run():
         # 7️⃣ Generate image using prompt (UPDATED)
         # =========================
         image_url, model = ImageAgent().run(
-            prompt=final_prompt,
-            negative_prompt=negative_prompt,
-            topic=title,  # used for filename/public_id only
+            prompt=prompt_data["prompt"],
+            negative_prompt=prompt_data["negative_prompt"],
+            topic=topic,
+            humans_allowed=prompt_data["humans_allowed"],
         )
 
         # =========================
