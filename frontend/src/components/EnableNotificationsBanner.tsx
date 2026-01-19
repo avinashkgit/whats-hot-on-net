@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/api/apiClient";
 import { getFcmToken } from "@/lib/fcm";
 import { useToast } from "@/hooks/use-toast";
+import { registerFirebaseSW } from "@/lib/registerServiceWorker";
 
 function getDeviceId() {
   let id = localStorage.getItem("device_id");
@@ -27,6 +28,10 @@ export default function EnableNotificationsBanner() {
     }, 5000); // 5 seconds
 
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    registerFirebaseSW();
   }, []);
 
   const handleEnable = async () => {
