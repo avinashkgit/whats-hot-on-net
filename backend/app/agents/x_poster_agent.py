@@ -1,7 +1,6 @@
 import os
 import tempfile
 import requests
-from requests_oauthlib import OAuth1
 import tweepy
 import logging
 from dotenv import load_dotenv
@@ -9,6 +8,9 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 load_dotenv()
 
+# ────────────────────────────────────────────────
+#   Credentials from .env (same as before)
+# ────────────────────────────────────────────────
 consumer_key = os.getenv("X_API_KEY")
 consumer_secret = os.getenv("X_API_SECRET")
 access_token = os.getenv("X_ACCESS_TOKEN")
@@ -16,105 +18,115 @@ access_token_secret = os.getenv("X_ACCESS_TOKEN_SECRET")
 
 
 class XPosterAgent:
+    """
+    Twitter/X posting client - Fixed for Tweepy 4.10+ (Jan 2026)
+    Uses manual OAuth1 handler for media upload + Client for v2 tweet creation
+    """
+
     def __init__(self):
         if not all([consumer_key, consumer_secret, access_token, access_token_secret]):
-            raise ValueError("❌ Missing X API credentials in environment variables")
+            raise ValueError(
+                "❌ Missing one or more X API credentials in environment variables"
+            )
 
-        # v2 client for tweet posting
+        # ── v2 Client for creating tweets ──
         self.client = tweepy.Client(
             consumer_key=consumer_key,
             consumer_secret=consumer_secret,
             access_token=access_token,
             access_token_secret=access_token_secret,
+            wait_on_rate_limit=True,
         )
 
-        # OAuth1 for media upload (v2 supports OAuth1 User Context)
-        self.auth = OAuth1(
-            consumer_key,
-            client_secret=consumer_secret,
-            resource_owner_key=access_token,
-            resource_owner_secret=access_token_secret
+        # ── Manual OAuth 1.0a User Handler (REQUIRED for v1.1 media upload) ──
+        self.oauth1_user_handler = tweepy.OAuth1UserHandler(
+            consumer_key, consumer_secret, access_token, access_token_secret
         )
+
+        # ── v1.1 API instance just for media upload ──
+        self.api_v1 = tweepy.API(self.oauth1_user_handler, wait_on_rate_limit=True)
 
     def build_post(self, title: str, url: str) -> str:
-        max_title_len = 280 - len(url) - 5  # Margin for newline and ellipsis
-        if len(title) > max_title_len:
-            title = title[:max_title_len - 3] + "..."
+        """Smart truncation to fit tweet limit with URL"""
+        url_space = len(url) + 5  # newline + margin
+        max_title = 280 - url_space
+
+        if len(title) > max_title - 3:
+            title = title[: max_title - 3].rstrip() + "..."
+
         return f"{title}\n{url}"
 
-    def post_article(self, title: str, slug: str):
+    def upload_media(self, img_path: str) -> str:
+        """
+        Upload image using v1.1 endpoint via tweepy.API (still the most reliable path)
+        Returns media_id_string
+        """
+        if not os.path.exists(img_path):
+            raise FileNotFoundError(f"Image not found: {img_path}")
+
+        try:
+            media = self.api_v1.media_upload(
+                filename=img_path,
+                media_category="tweet_image",  # recommended for images
+            )
+            logger.debug(f"Media uploaded - ID: {media.media_id_string}")
+            return media.media_id_string
+
+        except tweepy.TweepyException as e:
+            logger.error(f"Media upload failed: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                logger.error(f"API response: {e.response.text}")
+            raise RuntimeError(
+                "Media upload failed - most likely needs Pro+ tier or valid credentials"
+            )
+
+    def post_article(self, title: str, slug: str) -> str | None:
+        """Post article link without image"""
         try:
             url = f"https://hotonnet.com/article/{slug}"
-            post = self.build_post(title, url)
+            text = self.build_post(title, url)
 
-            response = self.client.create_tweet(text=post)
+            response = self.client.create_tweet(text=text)
             tweet_id = response.data["id"]
 
-            logger.info(f"✅ Posted to X | tweet_id={tweet_id}")
+            logger.info(f"Posted article | tweet_id={tweet_id}")
             return tweet_id
 
         except Exception:
-            logger.exception("❌ Failed to post on X")
+            logger.exception("❌ Failed to post article")
             return None
 
-    def upload_media_v2(self, img_path: str) -> str:
+    def post_article_with_image_url(
+        self, title: str, slug: str, image_url: str
+    ) -> str | None:
         """
-        Uploads media using v2 API endpoint with one-shot upload (suitable for images < 5MB).
-        For larger files or videos, implement chunked upload separately.
-        """
-        media_url = "https://upload.twitter.com/2/media/upload"
-        try:
-            with open(img_path, "rb") as img_file:
-                files = {"media": img_file}
-                r = requests.post(media_url, auth=self.auth, files=files, timeout=30)
-                r.raise_for_status()
-                media_id = r.json()["media_id_string"]
-                return media_id
-        except Exception:
-            logger.exception("❌ Failed to upload media to X v2")
-            raise
-
-    def post_article_with_image(self, title: str, slug: str, img_path: str):
-        try:
-            if not os.path.exists(img_path):
-                raise FileNotFoundError(f"Image file not found: {img_path}")
-
-            url = f"https://hotonnet.com/article/{slug}"
-            post = self.build_post(title, url)
-
-            media_id = self.upload_media_v2(img_path)
-
-            response = self.client.create_tweet(text=post, media_ids=[media_id])
-            tweet_id = response.data["id"]
-
-            logger.info(f"✅ Posted to X with image | tweet_id={tweet_id}")
-            return tweet_id
-
-        except Exception:
-            logger.exception("❌ Failed to post on X with image")
-            return None
-
-    def post_article_with_image_url(self, title: str, slug: str, image_url: str):
-        """
-        Downloads image_url to temp file, uploads to X v2, deletes temp file.
+        Download remote image → upload to X → post → clean up temp file
         """
         temp_path = None
         try:
-            r = requests.get(image_url, timeout=30)
+            r = requests.get(image_url, timeout=20)
             r.raise_for_status()
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as f:
-                f.write(r.content)
-                temp_path = f.name
+            ext = ".jpg"
+            content_type = r.headers.get("content-type", "")
+            if "png" in content_type:
+                ext = ".png"
+            elif "webp" in content_type:
+                ext = ".webp"
 
-            tweet_id = self.post_article_with_image(title, slug, temp_path)
-            logger.info(f"✅ Posted to X with image URL | tweet_id={tweet_id}")
-            return tweet_id
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                tmp.write(r.content)
+                temp_path = tmp.name
+
+            return self.post_article_with_image(title, slug, temp_path)
 
         except Exception:
-            logger.exception("❌ Failed to post on X with image URL")
+            logger.exception("❌ Failed to process remote image")
             return None
 
         finally:
             if temp_path and os.path.exists(temp_path):
-                os.remove(temp_path)
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
