@@ -151,7 +151,16 @@ class ImageAgent:
                     ),
                 )
 
-                image = response.candidates[0].content.parts[0].as_image()
+                parts = response.candidates[0].content.parts
+
+                img_part = next(
+                    (p for p in parts if getattr(p, "inline_data", None)), None
+                )
+                if not img_part:
+                    raise Exception("Gemini returned no image inline_data")
+
+                img_bytes = img_part.inline_data.data
+                image = Image.open(BytesIO(img_bytes)).convert("RGB")
 
                 print("✅ Gemini succeeded!")
                 url = self._process_and_upload(image, topic, "gemini")
@@ -159,46 +168,48 @@ class ImageAgent:
 
             except Exception as gemini_e:
                 print(f"❌ Gemini failed: {gemini_e} → falling back to xAI...")
+                raise RuntimeError(f"All providers failed! Last error: {e}") from e
 
         else:
             print("⚠️ GEMINI_API_KEY not set → skipping Gemini, trying xAI...")
+            raise RuntimeError(f"All providers failed! Last error: {e}") from e
 
         # ── 3) FINAL FALLBACK: xAI Grok ─────────────────────────────────────────
         print("Falling back to xAI Grok...")
-        try:
-            xai_payload = {
-                "model": "grok-2-image-1212",
-                "prompt": final_prompt,
-                "n": 1,
-                "response_format": "url",
-            }
+        # try:
+        #     xai_payload = {
+        #         "model": "grok-2-image-1212",
+        #         "prompt": final_prompt,
+        #         "n": 1,
+        #         "response_format": "url",
+        #     }
 
-            response = requests.post(
-                XAI_URL,
-                headers=XAI_HEADERS,
-                json=xai_payload,
-                timeout=90,
-                verify=certifi.where(),
-            )
-            response.raise_for_status()
+        #     response = requests.post(
+        #         XAI_URL,
+        #         headers=XAI_HEADERS,
+        #         json=xai_payload,
+        #         timeout=90,
+        #         verify=certifi.where(),
+        #     )
+        #     response.raise_for_status()
 
-            data = response.json()
-            temp_url = data["data"][0]["url"]
+        #     data = response.json()
+        #     temp_url = data["data"][0]["url"]
 
-            img_resp = requests.get(temp_url, timeout=45)
-            img_resp.raise_for_status()
+        #     img_resp = requests.get(temp_url, timeout=45)
+        #     img_resp.raise_for_status()
 
-            image = Image.open(BytesIO(img_resp.content)).convert("RGB")
-            print("✅ xAI Grok succeeded!")
-            url = self._process_and_upload(image, topic, "xai-grok")
-            return url, "xAI Grok (grok-2-image-1212)"
+        #     image = Image.open(BytesIO(img_resp.content)).convert("RGB")
+        #     print("✅ xAI Grok succeeded!")
+        #     url = self._process_and_upload(image, topic, "xai-grok")
+        #     return url, "xAI Grok (grok-2-image-1212)"
 
-        except Exception as e:
-            status = getattr(getattr(e, "response", None), "status_code", "N/A")
-            text = getattr(getattr(e, "response", None), "text", str(e))
-            print("xAI Status:", status)
-            print("xAI Details:", text)
-            raise RuntimeError(f"All providers failed! Last error: {e}") from e
+        # except Exception as e:
+        #     status = getattr(getattr(e, "response", None), "status_code", "N/A")
+        #     text = getattr(getattr(e, "response", None), "text", str(e))
+        #     print("xAI Status:", status)
+        #     print("xAI Details:", text)
+        # raise RuntimeError(f"All providers failed! Last error: {e}") from e
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
         enhancer = ImageEnhance.Sharpness(image)
