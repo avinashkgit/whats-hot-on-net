@@ -11,6 +11,8 @@ from huggingface_hub import InferenceClient, InferenceTimeoutError
 from huggingface_hub.errors import HfHubHTTPError
 import time
 import random
+import re
+
 
 # New unified Google GenAI SDK
 from google import genai
@@ -201,7 +203,12 @@ class ImageAgent:
         image.save(buffer, format="JPEG", quality=93, optimize=True, progressive=True)
         buffer.seek(0)
 
-        safe_topic = topic.lower().replace(" ", "_")[:48]
+        # ✅ sanitize topic for Cloudinary public_id
+        safe_topic = (topic or "").lower()
+        safe_topic = re.sub(r"[^a-z0-9_-]+", "_", safe_topic)  # remove ?, ., etc
+        safe_topic = re.sub(r"_+", "_", safe_topic).strip("_")  # collapse underscores
+        safe_topic = safe_topic[:48] or "news"
+
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         public_id = f"news_{safe_topic}_{timestamp}_{provider}"
 
@@ -216,7 +223,7 @@ class ImageAgent:
             tags=[
                 "ai-generated",
                 "photojournalism",
-                provider,
+                "provider",
                 "documentary",
                 "landscape",
                 "16:9",
