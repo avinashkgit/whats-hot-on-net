@@ -8,22 +8,16 @@ load_dotenv()
 
 class ImagePromptAgent:
     """
-    Takes a topic + category and generates a SHORT cinematic image prompt
-    that can be directly passed to ImageAgent.run(prompt=...).
+    Generates a realistic image prompt for news thumbnails.
 
-    Output format:
-    {
-        "prompt": "...",
-        "negative_prompt": "...",
-        "humans_allowed": bool,
-        "provider": "openai" | "xai-grok" | "fallback-default"
-    }
+    Goals:
+    - Prompt must stick ONLY to the topic (no unrelated creative drift)
+    - Keep prompt simple, topic-focused, wide/establishing style
+    - Prevent deformed humans/limbs and artifacts using strong negative_prompt
+    - prompt length <= 1024 characters
     """
 
-    # ✅ Ensure prompt length never exceeds 1024 characters
     MAX_PROMPT_LEN = 1024
-
-    # ✅ Optional: also cap negative prompt length (recommended)
     MAX_NEGATIVE_LEN = 1024
 
     ALLOWED_CATEGORIES = {
@@ -38,17 +32,16 @@ class ImagePromptAgent:
         "Explainers",
     }
 
+    # Strong negatives to prevent weird generations
     BASE_NEGATIVE = (
-        "people, human, face, hands, fingers, extra limbs, deformed, blurry, low quality, "
-        "watermark, caption, cartoon, anime, 3d render, plastic look, "
-        "subtitles, banner"
+        "deformed, extra limbs, "
+        "abnormal fingers, long neck, distorted face, "
+        "blurry, low quality, low resolution, noisy, jpeg artifacts, watermark, caption, "
+        "cartoon, anime, illustration, 3d render, plastic look"
     )
 
-    CINEMATIC_TAIL = (
-        "16:9 wide frame, 24mm lens look, wide establishing shot, deep perspective, "
-        "strong foreground-midground-background separation, cinematic lighting, ultra realistic, "
-        "documentary style, no readable text"
-    )
+    # Only used when humans are NOT allowed
+    HUMAN_BLOCK = "people, person, human, face, hands, fingers, crowd"
 
     def __init__(self, openai_model: str = None, grok_model: str = None):
         self.openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -67,7 +60,7 @@ class ImagePromptAgent:
         topic = (topic or "").strip()
         if not topic:
             return {
-                "prompt": "wide cinematic establishing shot, documentary style, realistic, 16:9",
+                "prompt": "wide realistic establishing shot, documentary style, 16:9",
                 "negative_prompt": self.BASE_NEGATIVE[: self.MAX_NEGATIVE_LEN],
                 "humans_allowed": False,
                 "provider": "fallback-default",
@@ -76,6 +69,7 @@ class ImagePromptAgent:
 
         category = category if category in self.ALLOWED_CATEGORIES else None
 
+        # Humans allowed only if topic explicitly implies it
         allow_humans = any(
             w in topic.lower()
             for w in [
@@ -83,93 +77,32 @@ class ImagePromptAgent:
                 "actor",
                 "actress",
                 "player",
+                "team",
                 "protest",
                 "rally",
-                "people",
                 "crowd",
+                "people",
+                "fans",
             ]
         )
 
-        # ✅ Enhanced cinematic scene hints (environment-focused)
-        scene_hints = {
-            "Science": (
-                "wide cinematic shot inside a high-tech research facility, clean stainless workbenches, "
-                "glowing microscopes and spectrometers, glass beakers and lab rigs, subtle blue accent lights, "
-                "soft haze for depth, dramatic rim lighting, ultra-real documentary look"
-            ),
-            "Tech": (
-                "wide cinematic establishing shot of futuristic technology environment, server racks in a modern data center, "
-                "fiber optic cables, glowing status LEDs, reflections on polished floor, neon blue/purple highlights, "
-                "volumetric light beams, high contrast, sleek cyber-modern atmosphere"
-            ),
-            "Market": (
-                "wide cinematic financial district skyline at dusk, tall glass skyscrapers, stock exchange exterior, "
-                "city traffic light trails, reflective wet streets, moody clouds, dramatic lighting, "
-                "subtle bokeh highlights, documentary realism, global economy vibe"
-            ),
-            "Lifestyle": (
-                "wide cinematic modern lifestyle scene, minimalist interior with soft natural window light, "
-                "warm neutral tones, indoor plants, cozy textures, calm city street outside, "
-                "travel postcard atmosphere, gentle depth-of-field, peaceful premium editorial look"
-            ),
-            "Health": (
-                "wide cinematic modern hospital exterior or medical research facility, clean white architecture, "
-                "ambulance bay lights, sterile medical lab ambiance, clinical blue-white lighting, "
-                "subtle fog/haze for depth, high realism, serious documentary mood"
-            ),
-            "Sports": (
-                "wide cinematic empty stadium at night, towering floodlights cutting through light mist, "
-                "dramatic shadows on the field, arena architecture in the background, "
-                "high contrast, intense atmosphere, epic sports documentary establishing shot"
-            ),
-            "Entertainment": (
-                "wide cinematic concert stage or cinema theater interior, large spotlights and rigging, "
-                "smoke haze, glowing LED panels (no readable text), rich warm highlights, "
-                "dramatic lighting, glossy reflections, premium showbiz mood"
-            ),
-            "Explainers": (
-                "wide cinematic newsroom-style environment, modern studio set, large abstract screens and light panels "
-                "(no readable text), clean professional lighting, subtle depth and reflections, "
-                "serious informative documentary tone"
-            ),
-            "News": (
-                "wide cinematic breaking-news atmosphere, city skyline under dramatic storm clouds, "
-                "emergency lights in the distance, wet asphalt reflections, "
-                "high tension mood, cinematic realism, documentary establishing shot"
-            ),
-            None: (
-                "wide cinematic establishing shot of a real-world cityscape or landscape, "
-                "dramatic natural lighting, atmospheric haze, strong depth and scale, "
-                "documentary realism, premium news thumbnail mood"
-            ),
-        }
-
-        scene = scene_hints.get(category, scene_hints[None])
-
         system = (
-            "You generate short cinematic realistic image prompts for news thumbnails. "
+            "You generate realistic image prompts for news thumbnails.\n"
+            "STRICT RULES:\n"
+            "- The prompt must represent ONLY the given topic.\n"
+            "- Do NOT add unrelated objects, locations, characters, or fantasy elements.\n"
+            "- Keep it realistic and documentary style.\n"
             "Return ONLY valid JSON. No markdown. No extra text."
         )
 
+        # Keep prompt instructions minimal
         user = f"""
 Topic: {topic}
 Category: {category or "General"}
 
-Goal:
-- Create ONE cinematic, realistic, news-thumbnail image prompt.
-- Must be usable directly as an image generation prompt.
-- 16:9 landscape, wide establishing shot, 24mm lens look.
-- Environment-focused (NOT close-up).
-- No readable text anywhere.
-
-Scene vibe hints: {scene}
-Cinematic style tail: {self.CINEMATIC_TAIL}
-
-Humans: {"allowed" if allow_humans else "NOT allowed (avoid people completely)"}
-
 Return JSON only:
 {{
-  "prompt": "string",
+  "prompt": "ONE short realistic image prompt that visually represents ONLY the topic. Use wide establishing shot, 16:9, documentary style.",
   "negative_prompt": "string"
 }}
 """.strip()
@@ -183,17 +116,15 @@ Return JSON only:
             prompt = (data.get("prompt") or "").strip()
             neg = (data.get("negative_prompt") or "").strip()
 
-            # ✅ Append cinematic tail if model didn't include it
-            if self.CINEMATIC_TAIL.lower() not in prompt.lower():
-                prompt = f"{prompt}, {self.CINEMATIC_TAIL}".strip(", ")
-
-            # ✅ Enforce max prompt length
+            # Enforce max prompt length
             prompt = prompt[: self.MAX_PROMPT_LEN].strip()
 
-            # ✅ Merge negatives and enforce max negative length
-            negative = f"{self.BASE_NEGATIVE}, {neg}".strip(", ").strip()
-            if not allow_humans and "people" not in negative.lower():
-                negative = "people, human, face, crowd, " + negative
+            # Merge negatives
+            negative_parts = [self.BASE_NEGATIVE, neg]
+            negative = ", ".join([p for p in negative_parts if p]).strip(", ").strip()
+
+            if not allow_humans:
+                negative = f"{self.HUMAN_BLOCK}, {negative}".strip(", ")
 
             negative = negative[: self.MAX_NEGATIVE_LEN].strip()
 
@@ -208,8 +139,8 @@ Return JSON only:
         try:
             resp = self.openai_client.chat.completions.create(
                 model=self.openai_model,
-                temperature=0.3,
-                max_tokens=260,
+                temperature=0.1,  # low = stays on topic
+                max_tokens=220,
                 messages=messages,
                 response_format={"type": "json_object"},
             )
@@ -225,8 +156,8 @@ Return JSON only:
         try:
             resp = self.xai_client.chat.completions.create(
                 model=self.grok_model,
-                temperature=0.3,
-                max_tokens=260,
+                temperature=0.1,
+                max_tokens=220,
                 messages=messages,
                 response_format={"type": "json_object"},
             )
@@ -234,11 +165,17 @@ Return JSON only:
             return normalize(data, "xai-grok")
 
         except Exception as e:
+            fallback_prompt = (
+                f"wide realistic establishing shot of {topic}, documentary style, 16:9"
+            )[: self.MAX_PROMPT_LEN].strip()
+
+            fallback_negative = self.BASE_NEGATIVE
+            if not allow_humans:
+                fallback_negative = f"{self.HUMAN_BLOCK}, {fallback_negative}"
+
             return {
-                "prompt": (
-                    f"wide cinematic establishing shot of {topic}, {self.CINEMATIC_TAIL}"
-                )[: self.MAX_PROMPT_LEN].strip(),
-                "negative_prompt": self.BASE_NEGATIVE[: self.MAX_NEGATIVE_LEN],
+                "prompt": fallback_prompt,
+                "negative_prompt": fallback_negative[: self.MAX_NEGATIVE_LEN],
                 "humans_allowed": allow_humans,
                 "provider": "fallback-default",
                 "error": str(e)[:120],
