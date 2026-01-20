@@ -140,60 +140,64 @@ class ImageAgent:
             return url, "black-forest-labs/FLUX.1-schnell"
 
         except (HfHubHTTPError, InferenceTimeoutError, Exception) as e:
-            print(f"❌ HF failed: {e.__class__.__name__} - {str(e)} → trying Gemini...")
+            print(f"⚠️ HF failed: {e.__class__.__name__} - {str(e)} → trying Gemini...")
 
         # ── 2) FALLBACK: Google Gemini ─────────────────────────────────────────
         print(f"Trying Google Gemini ({GEMINI_MODEL}) with retries...")
+        try:
+            image = generate_gemini_image_same_model_retry(
+                genai_client=genai_client,
+                model_name=GEMINI_MODEL,
+                prompt=final_prompt,
+                max_retries=6,
+                base_delay=1.5,
+                jitter=0.6,
+            )
 
-        image = generate_gemini_image_same_model_retry(
-            genai_client=genai_client,
-            model_name=GEMINI_MODEL,
-            prompt=final_prompt,
-            max_retries=6,
-            base_delay=1.5,
-            jitter=0.6,
-        )
-
-        print("✅ Gemini succeeded!")
-        url = self._process_and_upload(image, topic, "gemini")
-        return url, f"Google Gemini ({GEMINI_MODEL})"
+            print("✅ Gemini succeeded!")
+            url = self._process_and_upload(image, topic, "gemini")
+            return url, f"Google Gemini ({GEMINI_MODEL})"
+        except Exception as e:
+            print(
+                f"⚠️ Gemini failed: {e.__class__.__name__} - {str(e)} → trying Grok..."
+            )
 
         # ── 3) FINAL FALLBACK: xAI Grok ─────────────────────────────────────────
         print("Falling back to xAI Grok...")
-        # try:
-        #     xai_payload = {
-        #         "model": "grok-2-image-1212",
-        #         "prompt": final_prompt,
-        #         "n": 1,
-        #         "response_format": "url",
-        #     }
+        try:
+            xai_payload = {
+                "model": "grok-2-image-1212",
+                "prompt": final_prompt,
+                "n": 1,
+                "response_format": "url",
+            }
 
-        #     response = requests.post(
-        #         XAI_URL,
-        #         headers=XAI_HEADERS,
-        #         json=xai_payload,
-        #         timeout=90,
-        #         verify=certifi.where(),
-        #     )
-        #     response.raise_for_status()
+            response = requests.post(
+                XAI_URL,
+                headers=XAI_HEADERS,
+                json=xai_payload,
+                timeout=90,
+                verify=certifi.where(),
+            )
+            response.raise_for_status()
 
-        #     data = response.json()
-        #     temp_url = data["data"][0]["url"]
+            data = response.json()
+            temp_url = data["data"][0]["url"]
 
-        #     img_resp = requests.get(temp_url, timeout=45)
-        #     img_resp.raise_for_status()
+            img_resp = requests.get(temp_url, timeout=45)
+            img_resp.raise_for_status()
 
-        #     image = Image.open(BytesIO(img_resp.content)).convert("RGB")
-        #     print("✅ xAI Grok succeeded!")
-        #     url = self._process_and_upload(image, topic, "xai-grok")
-        #     return url, "xAI Grok (grok-2-image-1212)"
+            image = Image.open(BytesIO(img_resp.content)).convert("RGB")
+            print("✅ xAI Grok succeeded!")
+            url = self._process_and_upload(image, topic, "xai-grok")
+            return url, "xAI Grok (grok-2-image-1212)"
 
-        # except Exception as e:
-        #     status = getattr(getattr(e, "response", None), "status_code", "N/A")
-        #     text = getattr(getattr(e, "response", None), "text", str(e))
-        #     print("xAI Status:", status)
-        #     print("xAI Details:", text)
-        # raise RuntimeError(f"All providers failed! Last error: {e}") from e
+        except Exception as e:
+            status = getattr(getattr(e, "response", None), "status_code", "N/A")
+            text = getattr(getattr(e, "response", None), "text", str(e))
+            print("xAI Status:", status)
+            print("xAI Details:", text)
+        raise RuntimeError(f"❌ All providers failed! Last error: {e}") from e
 
     def _process_and_upload(self, image: Image.Image, topic: str, provider: str) -> str:
         enhancer = ImageEnhance.Sharpness(image)
@@ -298,6 +302,6 @@ def generate_gemini_image_same_model_retry(
             # Non-retryable OR retries exhausted
             raise Exception(f"Gemini failed (model={model_name}): {e}") from e
 
-    raise RuntimeError(
+    raise Exception(
         f"Gemini failed after {max_retries} retries. Last error: {last_error}"
     )
