@@ -109,7 +109,10 @@ def run():
         # 9️⃣ Post to X
         # =========================
         tweet_id = XPosterAgent().post_article_with_image_url(summary, slug, image_url)
-        print("✅ Tweet posted | tweet_id =", tweet_id)
+        if tweet_id:
+            print("✅ Tweet posted | tweet_id =", tweet_id)
+        else:
+            print("⚠️ Tweet may have failed or returned None")
 
         tokens = get_active_notification_tokens(db)
 
