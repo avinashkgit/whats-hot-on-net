@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 import certifi
 from huggingface_hub import InferenceClient, InferenceTimeoutError
 from huggingface_hub.errors import HfHubHTTPError
+import time
+import random
 
 # New unified Google GenAI SDK
 from google import genai
@@ -139,40 +141,20 @@ class ImageAgent:
             print(f"❌ HF failed: {e.__class__.__name__} - {str(e)} → trying Gemini...")
 
         # ── 2) FALLBACK: Google Gemini ─────────────────────────────────────────
-        if genai_client:
-            print(f"Trying Google Gemini ({GEMINI_MODEL})...")
-            try:
-                response = genai_client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=[final_prompt],
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE"],
-                        image_config=types.ImageConfig(aspect_ratio="16:9"),
-                    ),
-                )
+        print(f"Trying Google Gemini ({GEMINI_MODEL}) with retries...")
 
-                parts = response.candidates[0].content.parts
+        image = generate_gemini_image_same_model_retry(
+            genai_client=genai_client,
+            model_name=GEMINI_MODEL,
+            prompt=final_prompt,
+            max_retries=6,
+            base_delay=1.5,
+            jitter=0.6,
+        )
 
-                img_part = next(
-                    (p for p in parts if getattr(p, "inline_data", None)), None
-                )
-                if not img_part:
-                    raise Exception("Gemini returned no image inline_data")
-
-                img_bytes = img_part.inline_data.data
-                image = Image.open(BytesIO(img_bytes)).convert("RGB")
-
-                print("✅ Gemini succeeded!")
-                url = self._process_and_upload(image, topic, "gemini")
-                return url, f"Google Gemini ({GEMINI_MODEL})"
-
-            except Exception as gemini_e:
-                print(f"❌ Gemini failed: {gemini_e} → falling back to xAI...")
-                raise RuntimeError(f"All providers failed! Last error: {e}") from e
-
-        else:
-            print("⚠️ GEMINI_API_KEY not set → skipping Gemini, trying xAI...")
-            raise RuntimeError(f"All providers failed! Last error: {e}") from e
+        print("✅ Gemini succeeded!")
+        url = self._process_and_upload(image, topic, "gemini")
+        return url, f"Google Gemini ({GEMINI_MODEL})"
 
         # ── 3) FINAL FALLBACK: xAI Grok ─────────────────────────────────────────
         print("Falling back to xAI Grok...")
@@ -242,3 +224,73 @@ class ImageAgent:
         )
 
         return result["secure_url"]
+
+
+def generate_gemini_image_same_model_retry(
+    genai_client,
+    model_name: str,
+    prompt: str,
+    max_retries: int = 6,
+    base_delay: float = 1.5,
+    jitter: float = 0.6,
+) -> Image.Image:
+    """
+    Retries the SAME Gemini model multiple times (best for 503 overload).
+    Returns PIL.Image.Image
+    """
+
+    last_error = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"➡️ Gemini attempt {attempt}/{max_retries} (model={model_name})")
+
+            response = genai_client.models.generate_content(
+                model=model_name,
+                contents=[prompt],
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                    image_config=types.ImageConfig(aspect_ratio="16:9"),
+                ),
+            )
+
+            # Extract image bytes safely -> PIL
+            parts = response.candidates[0].content.parts
+            img_part = next((p for p in parts if getattr(p, "inline_data", None)), None)
+
+            if (
+                not img_part
+                or not img_part.inline_data
+                or not img_part.inline_data.data
+            ):
+                raise RuntimeError(f"Gemini returned no image. Parts={parts}")
+
+            img_bytes = img_part.inline_data.data
+            return Image.open(BytesIO(img_bytes)).convert("RGB")
+
+        except Exception as e:
+            last_error = e
+            msg = str(e)
+
+            # Retry only for overload/unavailable
+            is_overload = (
+                "503" in msg
+                or "UNAVAILABLE" in msg
+                or "overloaded" in msg.lower()
+                or "The model is overloaded" in msg
+            )
+
+            if is_overload and attempt < max_retries:
+                sleep_time = (base_delay * (2 ** (attempt - 1))) + random.uniform(
+                    0, jitter
+                )
+                print(f"⚠️ Model overloaded → retrying in {sleep_time:.2f}s...")
+                time.sleep(sleep_time)
+                continue
+
+            # Non-retryable OR retries exhausted
+            raise Exception(f"Gemini failed (model={model_name}): {e}") from e
+
+    raise RuntimeError(
+        f"Gemini failed after {max_retries} retries. Last error: {last_error}"
+    )
