@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { Calendar, Clock, Copy, Eye, Share2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRoute } from "wouter";
 import { ArticleDetailSkeleton } from "./ArticleDetailSkeleton";
 import { AdSense } from "@/components/AdSense";
@@ -35,7 +35,34 @@ export default function ArticleDetail() {
   // ✅ Ads: show only after selected paragraphs (NOT after every paragraph)
   // After 2nd, 5th, 8th paragraph => idx 1, 4, 7
   const adIndexes = useMemo(() => new Set([1, 4, 7]), []);
+
+  /* =========================
+     ✅ FIX FOR ADSENSE VIOLATION
+     "Google-served ads on screens without publisher content"
+  ========================== */
+
+  const [readyToShowAds, setReadyToShowAds] = useState(false);
+
+  useEffect(() => {
+    // Reset when route/article changes
+    setReadyToShowAds(false);
+
+    // Wait until article + content is loaded
+    if (!article || isLoading) return;
+
+    // Small delay so content paints before ads load
+    const t = window.setTimeout(() => {
+      setReadyToShowAds(true);
+    }, 800);
+
+    return () => window.clearTimeout(t);
+  }, [article, isLoading, slug]);
+
+  // ✅ Must have enough real content before ads show
   const shouldShowAds = paragraphs.length >= 4;
+
+  // ✅ Final safe validation (use this for all ads)
+  const allowAdsNow = readyToShowAds && shouldShowAds;
 
   /* =========================
      LOADING / ERROR
@@ -235,7 +262,7 @@ export default function ArticleDetail() {
                     )}
 
                     {/* ✅ Ad only after selected paragraphs */}
-                    {shouldShowAds && adIndexes.has(idx) && (
+                    {allowAdsNow && adIndexes.has(idx) && (
                       <div className="not-prose">
                         {SHOW_AD_PREVIEW ? (
                           <AdPreview label={`Ad after paragraph ${idx + 1}`} />

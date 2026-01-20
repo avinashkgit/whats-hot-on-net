@@ -104,6 +104,39 @@ export default function Home({ category }: HomeProps) {
   const cardsPerAd = cardsPerRow === 1 ? 2 : cardsPerRow;
 
   /* ===========================
+     ✅ FIX FOR ADSENSE VIOLATION
+     "Google-served ads on screens without publisher content"
+  ============================ */
+
+  const [readyToShowAds, setReadyToShowAds] = useState(false);
+
+  useEffect(() => {
+    // Reset when page/category changes
+    setReadyToShowAds(false);
+
+    // Wait until real content is loaded
+    if (!data || isLoading) return;
+
+    // Small delay so content paints before ads load
+    const t = window.setTimeout(() => {
+      setReadyToShowAds(true);
+    }, 800);
+
+    return () => window.clearTimeout(t);
+  }, [data, isLoading, page, category]);
+
+  // ✅ Must have enough real content before ads show
+  // Page 1: needs featured + enough cards
+  // Page 2+: needs enough cards
+  const hasEnoughContent =
+    page === 1
+      ? !!featuredArticle && listToRender.length >= 6
+      : listToRender.length >= 6;
+
+  // ✅ Final safe validation (use this everywhere for ads)
+  const allowAdsNow = allowAdsOnThisPage && readyToShowAds && hasEnoughContent;
+
+  /* ===========================
      ERROR STATE
   ============================ */
 
@@ -200,8 +233,8 @@ export default function Home({ category }: HomeProps) {
           <ArticleCard article={featuredArticle} featured />
         )}
 
-        {/* ✅ AD AFTER FEATURED (HOME ONLY) */}
-        {allowAdsOnThisPage && page === 1 && featuredArticle && (
+        {/* ✅ AD AFTER FEATURED (PAGE 1 ONLY) */}
+        {allowAdsNow && page === 1 && featuredArticle && (
           <div className="my-10">
             {SHOW_AD_PREVIEW ? (
               <AdPreview label="Ad after Featured Article" />
@@ -215,7 +248,8 @@ export default function Home({ category }: HomeProps) {
           </div>
         )}
 
-        {page === 1 && articles.length > 0 && (
+        {/* ✅ FIX: divider only when featured exists */}
+        {featuredArticle && page === 1 && (
           <div className="border-t border-border my-16" />
         )}
 
@@ -240,6 +274,7 @@ export default function Home({ category }: HomeProps) {
               const isNotLastCard = index !== listToRender.length - 1;
 
               const shouldInsertAd =
+                allowAdsNow &&
                 shouldShowRowAds &&
                 isEndOfRow &&
                 isNotLastCard &&
@@ -253,6 +288,7 @@ export default function Home({ category }: HomeProps) {
                     key={`ad-${index}`}
                     className="w-full col-span-1 md:col-span-2 lg:col-span-3 my-2"
                   >
+                    {/* ✅ SHOW_AD_PREVIEW works on page 2+ also */}
                     {SHOW_AD_PREVIEW ? (
                       <AdPreview label="Ad between rows" />
                     ) : (
