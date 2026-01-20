@@ -24,6 +24,8 @@ export default function Home({ category }: HomeProps) {
   const [, setLocation] = useLocation();
 
   // ✅ Toggle this:
+  // true  => shows preview placeholder boxes (recommended for testing UI)
+  // false => shows real Google AdSense ads
   const SHOW_AD_PREVIEW = false;
 
   // ✅ AdSense Config
@@ -65,8 +67,7 @@ export default function Home({ category }: HomeProps) {
   }, []);
 
   /* ===========================
-     SAFE DEFAULTS FOR MEMOS
-     (so hooks always run)
+     SAFE DEFAULTS (HOOK SAFE)
   ============================ */
 
   const articles = data?.items ?? [];
@@ -82,36 +83,23 @@ export default function Home({ category }: HomeProps) {
   }, [articles, page]);
 
   /* ===========================
-     AD PLACEMENT RULES (SAFE)
+     AD RULES (ADSENSE SAFE)
   ============================ */
 
-  const MAX_ROW_ADS = 2;
-
-  // show ads only on HOME page (not category page)
+  // ✅ Show ads only on HOME (not category pages)
   const allowAdsOnThisPage = !category;
 
-  // show row ads only if enough cards exist
+  // ✅ Safety: only show ads if we have enough cards
   const shouldShowRowAds = allowAdsOnThisPage && listToRender.length >= 6;
 
-  // ✅ This hook is now ALWAYS called (no conditional return before it)
-  const rowAdIndexes = useMemo(() => {
-    const indexes = new Set<number>();
-    if (!shouldShowRowAds) return indexes;
+  // ✅ AdSense-safe cap
+  const MAX_ADS_PER_PAGE = 3;
 
-    let adsPlaced = 0;
-
-    for (let i = 0; i < listToRender.length; i++) {
-      const isEndOfRow = (i + 1) % cardsPerRow === 0;
-      const isNotLastCard = i !== listToRender.length - 1;
-
-      if (isEndOfRow && isNotLastCard && adsPlaced < MAX_ROW_ADS) {
-        indexes.add(i);
-        adsPlaced++;
-      }
-    }
-
-    return indexes;
-  }, [shouldShowRowAds, listToRender.length, cardsPerRow]);
+  // ✅ IMPORTANT:
+  // Desktop (3 cols) => ad after every 3 cards
+  // Tablet  (2 cols) => ad after every 2 cards
+  // Mobile  (1 col)  => ad after every 2 cards (NOT every card)
+  const cardsPerAd = cardsPerRow === 1 ? 2 : cardsPerRow;
 
   /* ===========================
      ERROR STATE
@@ -147,7 +135,7 @@ export default function Home({ category }: HomeProps) {
   };
 
   /* ===========================
-     LOADING STATE (SKELETON UI)
+     LOADING STATE
   ============================ */
 
   if (isLoading && !data) {
@@ -229,28 +217,56 @@ export default function Home({ category }: HomeProps) {
           <div className="border-t border-border my-16" />
         )}
 
-        {/* ARTICLE GRID */}
+        {/* ===========================
+            ARTICLE GRID + ADS
+            Desktop/Tab: after each row
+            Mobile: after every 2 cards
+        ============================ */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-          {listToRender.map((article, index) => (
-            <div key={article.id} className="flex flex-col">
-              <ArticleCard article={article} />
+          {(() => {
+            const elements: JSX.Element[] = [];
+            let adsPlaced = 0;
 
-              {/* Ad between rows (capped) */}
-              {rowAdIndexes.has(index) && (
-                <div className="mt-8 md:col-span-2 lg:col-span-3">
-                  {SHOW_AD_PREVIEW ? (
-                    <AdPreview label="Ad between rows" />
-                  ) : (
-                    <AdSense
-                      adClient={ADSENSE_CLIENT}
-                      adSlot={HOME_AD_WITHIN_CARDS}
-                      className="max-w-4xl mx-auto"
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            listToRender.forEach((article, index) => {
+              // Article card
+              elements.push(
+                <ArticleCard key={`article-${article.id}`} article={article} />
+              );
+
+              // Insert Ad after row
+              const isEndOfRow = (index + 1) % cardsPerAd === 0;
+              const isNotLastCard = index !== listToRender.length - 1;
+
+              const shouldInsertAd =
+                shouldShowRowAds &&
+                isEndOfRow &&
+                isNotLastCard &&
+                adsPlaced < MAX_ADS_PER_PAGE;
+
+              if (shouldInsertAd) {
+                adsPlaced++;
+
+                elements.push(
+                  <div
+                    key={`ad-${index}`}
+                    className="w-full col-span-1 md:col-span-2 lg:col-span-3 my-2"
+                  >
+                    {SHOW_AD_PREVIEW ? (
+                      <AdPreview label="Ad between rows" />
+                    ) : (
+                      <AdSense
+                        adClient={ADSENSE_CLIENT}
+                        adSlot={HOME_AD_WITHIN_CARDS}
+                        className="w-full"
+                      />
+                    )}
+                  </div>
+                );
+              }
+            });
+
+            return elements;
+          })()}
         </div>
 
         {/* EMPTY STATE */}
