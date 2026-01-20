@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 declare global {
   interface Window {
@@ -7,9 +7,9 @@ declare global {
 }
 
 interface AdSenseProps {
-  adClient: string; // ca-pub-xxxxxxxxxxxx
-  adSlot: string; // slot id from adsense
-  adFormat?: string; // "auto"
+  adClient: string;
+  adSlot: string;
+  adFormat?: string;
   fullWidthResponsive?: boolean;
   className?: string;
 }
@@ -21,9 +21,15 @@ export function AdSense({
   fullWidthResponsive = true,
   className = "",
 }: AdSenseProps) {
+  const pushed = useRef(false);
+
   useEffect(() => {
+    if (pushed.current) return;
+    pushed.current = true;
+
     try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      window.adsbygoogle = window.adsbygoogle || [];
+      window.adsbygoogle.push({});
     } catch (e) {
       console.log("AdSense error:", e);
     }

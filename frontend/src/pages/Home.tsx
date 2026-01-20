@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useArticles } from "@/hooks/use-blog";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ArticleCardSkeleton } from "@/components/ArticleCardSkeleton";
@@ -24,11 +24,9 @@ export default function Home({ category }: HomeProps) {
   const [, setLocation] = useLocation();
 
   // ✅ Toggle this:
-  // true  => shows preview placeholder boxes (recommended for testing UI)
-  // false => shows real Google AdSense ads
   const SHOW_AD_PREVIEW = false;
 
-  // ✅ AdSense Config (replace these when you go live)
+  // ✅ AdSense Config
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
   const HOME_AD_AFTER_FEATURE_ARTICLE = "2150862406";
   const HOME_AD_WITHIN_CARDS = "5898535727";
@@ -65,6 +63,55 @@ export default function Home({ category }: HomeProps) {
 
     return () => window.removeEventListener("resize", updateCardsPerRow);
   }, []);
+
+  /* ===========================
+     SAFE DEFAULTS FOR MEMOS
+     (so hooks always run)
+  ============================ */
+
+  const articles = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
+
+  const featuredArticle = useMemo(() => {
+    return page === 1 ? articles[0] : undefined;
+  }, [articles, page]);
+
+  const listToRender = useMemo(() => {
+    if (page === 1) return articles.slice(1);
+    return articles;
+  }, [articles, page]);
+
+  /* ===========================
+     AD PLACEMENT RULES (SAFE)
+  ============================ */
+
+  const MAX_ROW_ADS = 2;
+
+  // show ads only on HOME page (not category page)
+  const allowAdsOnThisPage = !category;
+
+  // show row ads only if enough cards exist
+  const shouldShowRowAds = allowAdsOnThisPage && listToRender.length >= 6;
+
+  // ✅ This hook is now ALWAYS called (no conditional return before it)
+  const rowAdIndexes = useMemo(() => {
+    const indexes = new Set<number>();
+    if (!shouldShowRowAds) return indexes;
+
+    let adsPlaced = 0;
+
+    for (let i = 0; i < listToRender.length; i++) {
+      const isEndOfRow = (i + 1) % cardsPerRow === 0;
+      const isNotLastCard = i !== listToRender.length - 1;
+
+      if (isEndOfRow && isNotLastCard && adsPlaced < MAX_ROW_ADS) {
+        indexes.add(i);
+        adsPlaced++;
+      }
+    }
+
+    return indexes;
+  }, [shouldShowRowAds, listToRender.length, cardsPerRow]);
 
   /* ===========================
      ERROR STATE
@@ -141,21 +188,12 @@ export default function Home({ category }: HomeProps) {
 
   if (!data) return null;
 
-  const { items: articles, totalPages } = data;
-  const featuredArticle = articles[0];
-  const remainingArticles = articles.slice(1);
-
-  // On page 1, show featured separately, then show remaining in grid
-  const listToRender = page === 1 ? remainingArticles : articles;
-
   return (
     <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
       <Navigation />
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex-grow">
-        {/* ===========================
-            HERO HEADER (HOME ONLY)
-        ============================ */}
+        {/* HERO HEADER (HOME ONLY) */}
         {!category && page === 1 && (
           <div className="mb-12 text-center max-w-2xl mx-auto">
             <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-4 leading-tight">
@@ -167,17 +205,13 @@ export default function Home({ category }: HomeProps) {
           </div>
         )}
 
-        {/* ===========================
-            FEATURED ARTICLE
-        ============================ */}
+        {/* FEATURED ARTICLE */}
         {featuredArticle && page === 1 && (
           <ArticleCard article={featuredArticle} featured />
         )}
 
-        {/* ===========================
-            ✅ AD AFTER FEATURED
-        ============================ */}
-        {!category && page === 1 && (
+        {/* ✅ AD AFTER FEATURED (HOME ONLY) */}
+        {allowAdsOnThisPage && page === 1 && featuredArticle && (
           <div className="my-10">
             {SHOW_AD_PREVIEW ? (
               <AdPreview label="Ad after Featured Article" />
@@ -195,40 +229,31 @@ export default function Home({ category }: HomeProps) {
           <div className="border-t border-border my-16" />
         )}
 
-        {/* ===========================
-            ARTICLE GRID + ADS AFTER EACH ROW
-        ============================ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8">
-          {listToRender.map((article, index) => {
-            const shouldShowAdAfterRow = (index + 1) % cardsPerRow === 0;
+        {/* ARTICLE GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+          {listToRender.map((article, index) => (
+            <div key={article.id} className="flex flex-col">
+              <ArticleCard article={article} />
 
-            return (
-              <div key={article.id} className="contents">
-                {/* Card */}
-                <ArticleCard article={article} />
-
-                {/* Ad after each row */}
-                {shouldShowAdAfterRow && (
-                  <div className="col-span-1 md:col-span-2 lg:col-span-3 my-6">
-                    {SHOW_AD_PREVIEW ? (
-                      <AdPreview label="Ad between rows" />
-                    ) : (
-                      <AdSense
-                        adClient={ADSENSE_CLIENT}
-                        adSlot={HOME_AD_WITHIN_CARDS}
-                        className="max-w-4xl mx-auto"
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              {/* Ad between rows (capped) */}
+              {rowAdIndexes.has(index) && (
+                <div className="mt-8 md:col-span-2 lg:col-span-3">
+                  {SHOW_AD_PREVIEW ? (
+                    <AdPreview label="Ad between rows" />
+                  ) : (
+                    <AdSense
+                      adClient={ADSENSE_CLIENT}
+                      adSlot={HOME_AD_WITHIN_CARDS}
+                      className="max-w-4xl mx-auto"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* ===========================
-            EMPTY STATE
-        ============================ */}
+        {/* EMPTY STATE */}
         {articles.length === 0 && (
           <div className="text-center py-20 bg-muted/30 rounded-3xl">
             <h3 className="text-xl font-bold text-muted-foreground">
@@ -243,9 +268,7 @@ export default function Home({ category }: HomeProps) {
           </div>
         )}
 
-        {/* ===========================
-            PAGINATION
-        ============================ */}
+        {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="mt-20">
             <Pagination>

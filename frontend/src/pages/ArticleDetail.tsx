@@ -32,6 +32,11 @@ export default function ArticleDetail() {
       .filter(Boolean);
   }, [article?.content]);
 
+  // ✅ Ads: show only after selected paragraphs (NOT after every paragraph)
+  // After 2nd, 5th, 8th paragraph => idx 1, 4, 7
+  const adIndexes = useMemo(() => new Set([1, 4, 7]), []);
+  const shouldShowAds = paragraphs.length >= 4;
+
   /* =========================
      LOADING / ERROR
   ========================== */
@@ -69,7 +74,7 @@ export default function ArticleDetail() {
      HELPERS & SEO DATA
   ========================== */
 
-  const readTime = Math.ceil(article.content.length / 1000);
+  const readTime = Math.max(1, Math.ceil(article.content.length / 1000));
   const pageUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const seoTitle = article.title;
@@ -79,20 +84,30 @@ export default function ArticleDetail() {
   const canonicalUrl = pageUrl || `https://hotonnet.com/article/${slug}`;
 
   const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: article.title,
-        text: article.summary,
-        url: pageUrl,
-      });
-    } else {
-      await navigator.clipboard.writeText(pageUrl);
-      alert("Link copied to clipboard");
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: article.title,
+          text: article.summary,
+          url: pageUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(pageUrl);
+        alert("Link copied to clipboard");
+      }
+    } catch (e) {
+      console.log("Share failed:", e);
     }
   };
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(pageUrl);
+    try {
+      await navigator.clipboard.writeText(pageUrl);
+      alert("Link copied!");
+    } catch (e) {
+      console.log("Copy failed:", e);
+      alert("Could not copy link");
+    }
   };
 
   return (
@@ -112,6 +127,7 @@ export default function ArticleDetail() {
         <meta name="twitter:image" content={seoImage} />
         <meta name="twitter:creator" content="@avinash2it" />
         <meta name="twitter:site" content="@hotonnet_com" />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -152,7 +168,7 @@ export default function ArticleDetail() {
 
                   <span className="flex items-center gap-2">
                     <Eye className="w-4 h-4" />
-                    {article.views.toLocaleString()} views
+                    {(article.views ?? 0).toLocaleString()} views
                   </span>
 
                   {/* MOBILE SHARE */}
@@ -218,18 +234,20 @@ export default function ArticleDetail() {
                       <p>{paragraph}</p>
                     )}
 
-                    {/* ✅ Ad after each paragraph */}
-                    <div className="not-prose">
-                      {SHOW_AD_PREVIEW ? (
-                        <AdPreview label={`Ad after paragraph ${idx + 1}`} />
-                      ) : (
-                        <AdSense
-                          adClient={ADSENSE_CLIENT}
-                          adSlot={ARTICLE_DETAIL_PARAGRAPHS}
-                          className="max-w-3xl mx-auto"
-                        />
-                      )}
-                    </div>
+                    {/* ✅ Ad only after selected paragraphs */}
+                    {shouldShowAds && adIndexes.has(idx) && (
+                      <div className="not-prose">
+                        {SHOW_AD_PREVIEW ? (
+                          <AdPreview label={`Ad after paragraph ${idx + 1}`} />
+                        ) : (
+                          <AdSense
+                            adClient={ADSENSE_CLIENT}
+                            adSlot={ARTICLE_DETAIL_PARAGRAPHS}
+                            className="max-w-3xl mx-auto"
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
