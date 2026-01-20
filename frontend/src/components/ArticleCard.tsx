@@ -17,7 +17,7 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
         whileHover={{ y: -4 }}
-        className="group relative grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-16 p-6 rounded-3xl transition-all duration-300 bg-card shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.7)] border border-border/50 hover:shadow-[0_20px_40px_-12px_rgba(239,68,68,0.2)] dark:hover:shadow-[0_20px_50px_-12px_rgba(239,68,68,0.3)] hover:border-primary/30"
+        className="group relative grid grid-cols-1 md:grid-cols-2 gap-8 items-center p-6 rounded-3xl transition-all duration-300 bg-card shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.7)] border border-border/50 hover:shadow-[0_20px_40px_-12px_rgba(239,68,68,0.2)] dark:hover:shadow-[0_20px_50px_-12px_rgba(239,68,68,0.3)] hover:border-primary/30"
       >
         <Link href={`/article/${article.slug}`} className="block overflow-hidden rounded-2xl aspect-[4/3] md:aspect-[16/10] shadow-md">
           <div className="w-full h-full bg-muted relative overflow-hidden">

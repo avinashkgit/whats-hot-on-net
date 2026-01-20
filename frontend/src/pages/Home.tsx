@@ -55,8 +55,10 @@ export default function Home({ category }: HomeProps) {
     const updateCardsPerRow = () => {
       const width = window.innerWidth;
 
-      if (width >= 1024) setCardsPerRow(3); // lg
-      else if (width >= 768) setCardsPerRow(2); // md
+      if (width >= 1024)
+        setCardsPerRow(3); // lg
+      else if (width >= 768)
+        setCardsPerRow(2); // md
       else setCardsPerRow(1); // mobile
     };
 
@@ -222,7 +224,7 @@ export default function Home({ category }: HomeProps) {
             Desktop/Tab: after each row
             Mobile: after every 2 cards
         ============================ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
           {(() => {
             const elements: JSX.Element[] = [];
             let adsPlaced = 0;
@@ -230,7 +232,7 @@ export default function Home({ category }: HomeProps) {
             listToRender.forEach((article, index) => {
               // Article card
               elements.push(
-                <ArticleCard key={`article-${article.id}`} article={article} />
+                <ArticleCard key={`article-${article.id}`} article={article} />,
               );
 
               // Insert Ad after row
@@ -260,7 +262,7 @@ export default function Home({ category }: HomeProps) {
                         className="w-full"
                       />
                     )}
-                  </div>
+                  </div>,
                 );
               }
             });
@@ -319,7 +321,7 @@ export default function Home({ category }: HomeProps) {
                         {pageNum}
                       </PaginationLink>
                     </PaginationItem>
-                  )
+                  ),
                 )}
 
                 <PaginationItem>
