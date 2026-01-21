@@ -7,9 +7,8 @@ import {
   NotificationTokenCreate,
 } from "@/models/schema";
 
-export const BASE_URL = `https://api.hotonnet.com`;
+const API_BASE = `https://api.hotonnet.com`;
 export const WEB_URL = `https://hotonnet.com`;
-const API_BASE = `${BASE_URL}/api`;
 // const API_BASE = "http://127.0.0.1:8000";
 
 const routes = {
