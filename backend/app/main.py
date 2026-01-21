@@ -95,19 +95,6 @@ def get_db():
         db.close()
 
 
-# =========================
-# ROOT (avoid redirect loop)
-# =========================
-@app.get("/")
-def root():
-    return RedirectResponse(url=PUBLIC_SITE_URL, status_code=302)
-
-
-# =========================
-# ROUTES REQUIRED BY UI
-# =========================
-
-
 @app.get("/categories")
 def topics(db: Session = Depends(get_db)):
     return get_categories(db)
@@ -127,8 +114,7 @@ def articles(
         limit=limit,
     )
 
-
-@app.get("/articles/{slug}")
+@app.get("/article/{slug}")
 def article(slug: str, db: Session = Depends(get_db)):
     article = get_article_by_slug(db, slug=slug)
     if not article:

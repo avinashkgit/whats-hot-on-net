@@ -17,7 +17,7 @@ const routes = {
   },
   articles: {
     list: `${API_BASE}/articles`,
-    get: (slug: string) => `${API_BASE}/articles/${slug}`,
+    get: (slug: string) => `${API_BASE}/article/${slug}`,
     create: `${API_BASE}/articles`,
   },
   notifications: {
