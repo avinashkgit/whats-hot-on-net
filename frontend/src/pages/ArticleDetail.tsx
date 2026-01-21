@@ -10,7 +10,7 @@ import { useRoute } from "wouter";
 import { ArticleDetailSkeleton } from "./ArticleDetailSkeleton";
 import { AdSense } from "@/components/AdSense";
 import { AdPreview } from "@/components/AdPreview";
-import { BASE_URL } from "@/api/apiClient";
+import { WEB_URL } from "@/api/apiClient";
 
 export default function ArticleDetail() {
   const [, params] = useRoute("/article/:slug");
@@ -24,7 +24,7 @@ export default function ArticleDetail() {
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
   const ARTICLE_DETAIL_PARAGRAPHS = "9646209040";
 
-  const SHARE_BASE = `${BASE_URL}/share`;
+  const SHARE_BASE = `${WEB_URL}/share`;
   const shareUrl = `${SHARE_BASE}/${slug}`;
 
   // ✅ IMPORTANT: hooks must be ABOVE any return

@@ -1,7 +1,7 @@
 import html
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, HTTPException, Query, Request, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -19,15 +19,14 @@ app = FastAPI(title="HotOnNet API")
 
 # =========================
 # FRONTEND BUILD (OPTIONAL)
-# If you deploy React build inside backend container, keep dist/index.html
-# Otherwise it will just redirect for search bots.
 # =========================
 INDEX_HTML = Path("dist/index.html")
 
 # =========================
 # DOMAIN CONFIG
 # =========================
-PUBLIC_SITE_URL = "https://hotonnet.com"
+PUBLIC_SITE_URL = "https://hotonnet.com"  # frontend (Hostinger)
+PUBLIC_API_URL = "https://api.hotonnet.com"  # backend (Render)
 DEFAULT_OG_IMAGE = f"{PUBLIC_SITE_URL}/icons/og.png"
 
 # =========================
@@ -36,8 +35,8 @@ DEFAULT_OG_IMAGE = f"{PUBLIC_SITE_URL}/icons/og.png"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # local React dev
-        "https://hotonnet.com",  # production frontend
+        "http://localhost:5173",
+        "https://hotonnet.com",
         "https://www.hotonnet.com",
     ],
     allow_credentials=True,
@@ -50,9 +49,6 @@ app.add_middleware(
 # BOT DETECTION
 # =========================
 def is_social_bot(user_agent: str | None) -> bool:
-    """
-    Social media preview bots that NEED OG meta HTML.
-    """
     if not user_agent:
         return False
 
@@ -74,9 +70,6 @@ def is_social_bot(user_agent: str | None) -> bool:
 
 
 def is_search_engine_bot(user_agent: str | None) -> bool:
-    """
-    Search engine crawlers. Better to serve HTML (200) if possible.
-    """
     if not user_agent:
         return False
 
@@ -103,24 +96,24 @@ def get_db():
 
 
 # =========================
-# API ROUTER (PREFIX /api)
+# ROOT (avoid redirect loop)
 # =========================
-api = APIRouter(prefix="/api")
-
-
 @app.get("/")
 def root():
-    return RedirectResponse(url="https://www.hotonnet.com", status_code=302)
+    return RedirectResponse(url=PUBLIC_SITE_URL, status_code=302)
 
 
-# --- Topics (Navigation / Filters)
-@api.get("/categories")
+# =========================
+# ROUTES REQUIRED BY UI
+# =========================
+
+
+@app.get("/categories")
 def topics(db: Session = Depends(get_db)):
     return get_categories(db)
 
 
-# --- Articles list (Home + Pagination + Topic filter)
-@api.get("/articles")
+@app.get("/articles")
 def articles(
     category: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -135,8 +128,7 @@ def articles(
     )
 
 
-# --- Single article (Article page)
-@api.get("/articles/{slug}")
+@app.get("/articles/{slug}")
 def article(slug: str, db: Session = Depends(get_db)):
     article = get_article_by_slug(db, slug=slug)
     if not article:
@@ -144,8 +136,7 @@ def article(slug: str, db: Session = Depends(get_db)):
     return article
 
 
-# --- Notification token
-@api.post("/notifications/token")
+@app.post("/notifications/token")
 def register_notification_token(
     payload: NotificationTokenCreate,
     db: Session = Depends(get_db),
@@ -164,12 +155,8 @@ def register_notification_token(
     }
 
 
-# Register /api router
-app.include_router(api)
-
-
 # =========================
-# SHARE URL (NO /api prefix)
+# SHARE URL (OG PREVIEW)
 # =========================
 @app.get("/share/{slug}", response_class=HTMLResponse)
 def article_share(
@@ -181,15 +168,14 @@ def article_share(
     article = get_article_by_slug(db, slug=slug)
 
     frontend_article_url = f"{PUBLIC_SITE_URL}/article/{slug}"
-    share_url = f"{PUBLIC_SITE_URL}/share/{slug}"
 
-    # Never 404 on share URLs (important for previews)
+    # /share exists on backend → must use API domain
+    share_url = f"{PUBLIC_API_URL}/share/{slug}"
+
     if not article:
         return RedirectResponse(url=frontend_article_url, status_code=302)
 
-    # =========================
-    # 1) SOCIAL BOTS → OG HTML
-    # =========================
+    # Social bots → OG HTML
     if is_social_bot(user_agent):
         title = html.escape(str(article.get("title") or "HotOnNet"))
 
@@ -208,7 +194,6 @@ def article_share(
             or DEFAULT_OG_IMAGE
         )
 
-        # Make sure image is absolute URL
         if isinstance(image, str) and image.startswith("/"):
             image = f"{PUBLIC_SITE_URL}{image}"
 
@@ -236,15 +221,10 @@ def article_share(
 </head>
 <body></body>
 </html>""",
-            headers={
-                # cache for social bots
-                "Cache-Control": "public, max-age=600",
-            },
+            headers={"Cache-Control": "public, max-age=600"},
         )
 
-    # =========================
-    # 2) SEARCH ENGINE BOTS → SERVE SPA HTML (200)
-    # =========================
+    # Search engines → serve SPA HTML if exists
     if is_search_engine_bot(user_agent):
         if INDEX_HTML.exists():
             return HTMLResponse(
@@ -252,12 +232,9 @@ def article_share(
                 headers={"Cache-Control": "public, max-age=300"},
             )
 
-        # If dist doesn't exist, fallback to redirect
         return RedirectResponse(url=frontend_article_url, status_code=302)
 
-    # =========================
-    # 3) HUMANS → REDIRECT TO FRONTEND
-    # =========================
+    # Humans → redirect to frontend
     return RedirectResponse(url=frontend_article_url, status_code=302)
 
 
