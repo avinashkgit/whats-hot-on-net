@@ -13,6 +13,7 @@ import { ScrollToTop } from "./ScrollToTop";
 import AboutUs from "./pages/AboutUs";
 import ContactUs from "./pages/ContactUs";
 import EnableNotificationsBanner from "@/components/EnableNotificationsBanner";
+import { useWouterAnalytics } from "./hooks/useWouterAnalytics";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
 }
 
 function AppContent() {
+  useWouterAnalytics();
   return (
     <>
       <Toaster />
