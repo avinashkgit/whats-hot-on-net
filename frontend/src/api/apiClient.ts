@@ -7,7 +7,8 @@ import {
   NotificationTokenCreate,
 } from "@/models/schema";
 
-const API_BASE = "https://whats-hot-on-net.onrender.com";
+export const BASE_URL = `https://hotonnet.com`;
+const API_BASE = `${BASE_URL}/api`;
 // const API_BASE = "http://127.0.0.1:8000";
 
 const routes = {
@@ -68,13 +69,13 @@ export const apiClient = {
             .filter(([, v]) => v !== undefined)
             .reduce(
               (acc, [k, v]) => ({ ...acc, [k]: String(v) }),
-              {} as Record<string, string>
-            )
+              {} as Record<string, string>,
+            ),
         ).toString()}`
       : "";
 
     return apiFetch<PaginatedResponse<ArticleWithCategory>>(
-      `${routes.articles.list}${query}`
+      `${routes.articles.list}${query}`,
     );
   },
 
