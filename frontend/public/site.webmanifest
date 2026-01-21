@@ -1,6 +1,6 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "Hot On Net",
+  "short_name": "HotOnNet",
   "icons": [
     {
       "src": "/icons/web-app-manifest-192x192.png",

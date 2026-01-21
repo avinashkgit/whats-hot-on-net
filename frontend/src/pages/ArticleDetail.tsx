@@ -23,6 +23,9 @@ export default function ArticleDetail() {
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
   const ARTICLE_DETAIL_PARAGRAPHS = "9646209040";
 
+  const SHARE_BASE = "https://whats-hot-on-net.onrender.com/share";
+  const shareUrl = `${SHARE_BASE}/${slug}`;
+
   // ✅ IMPORTANT: hooks must be ABOVE any return
   const paragraphs = useMemo(() => {
     if (!article?.content) return [];
@@ -116,10 +119,10 @@ export default function ArticleDetail() {
         await navigator.share({
           title: article.title,
           text: article.summary,
-          url: pageUrl,
+          url: shareUrl, // ✅ backend share URL
         });
       } else {
-        await navigator.clipboard.writeText(pageUrl);
+        await navigator.clipboard.writeText(shareUrl);
         alert("Link copied to clipboard");
       }
     } catch (e) {
@@ -129,7 +132,7 @@ export default function ArticleDetail() {
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(pageUrl);
+      await navigator.clipboard.writeText(shareUrl);
       alert("Link copied!");
     } catch (e) {
       console.log("Copy failed:", e);
