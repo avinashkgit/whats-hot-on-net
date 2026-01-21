@@ -17,7 +17,7 @@ export function Footer() {
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
               Curating the most essential stories from around the globe.
-              Science, lifestyle, markets, and more delivered with style.
+              News, science, lifestyle, business, and more delivered with style.
             </p>
           </div>
 

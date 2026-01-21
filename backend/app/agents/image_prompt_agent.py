@@ -24,7 +24,7 @@ class ImagePromptAgent:
         "News",
         "Science",
         "Tech",
-        "Market",
+        "Business",
         "Lifestyle",
         "Health",
         "Sports",

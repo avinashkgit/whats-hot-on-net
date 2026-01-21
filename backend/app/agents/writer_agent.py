@@ -19,7 +19,7 @@ ALLOWED_CATEGORIES = [
     "News",
     "Science",
     "Tech",
-    "Market",
+    "Business",
     "Lifestyle",
     "Health",
     "Sports",

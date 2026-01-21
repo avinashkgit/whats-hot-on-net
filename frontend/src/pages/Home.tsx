@@ -37,7 +37,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      ADS CONFIG
   ============================ */
-
   const SHOW_AD_PREVIEW = false;
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
   const HOME_AD_AFTER_FEATURE_ARTICLE = "2150862406";
@@ -46,7 +45,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      PAGINATION (URL BASED)
   ============================ */
-
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const page = parseInt(searchParams.get("page") || "1", 10);
@@ -64,7 +62,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      RESPONSIVE GRID
   ============================ */
-
   const [cardsPerRow, setCardsPerRow] = useState(3);
 
   useEffect(() => {
@@ -83,7 +80,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      FEATURED + LIST
   ============================ */
-
   const featuredArticle = useMemo(() => {
     return page === 1 ? articles[0] : undefined;
   }, [articles, page]);
@@ -96,7 +92,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      ADSENSE SAFETY
   ============================ */
-
   const allowAdsOnThisPage = !category;
   const shouldShowRowAds = allowAdsOnThisPage && listToRender.length >= 6;
   const MAX_ADS_PER_PAGE = 3;
@@ -122,7 +117,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      PAGE CHANGE HANDLER
   ============================ */
-
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(search);
     params.set("page", newPage.toString());
@@ -136,23 +130,19 @@ export default function Home({ category }: HomeProps) {
   };
 
   /* ===========================
-     ERROR STATE (PRODUCTION)
+     ERROR STATE
   ============================ */
-
   if (error) {
     return (
       <div className="min-h-screen flex flex-col overflow-x-hidden">
         <Navigation />
-
         <main className="container mx-auto px-4 py-24 flex-grow flex flex-col items-center justify-center text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
             Unable to load articles
           </h2>
-
           <p className="text-muted-foreground max-w-md mb-8">
             Something went wrong while fetching stories. Please try again.
           </p>
-
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
@@ -160,7 +150,6 @@ export default function Home({ category }: HomeProps) {
             Try again
           </button>
         </main>
-
         <Footer />
       </div>
     );
@@ -169,7 +158,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      LOADING STATE
   ============================ */
-
   if (isLoading && !data) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -190,7 +178,6 @@ export default function Home({ category }: HomeProps) {
   /* ===========================
      RENDER
   ============================ */
-
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
       <div id="page-top" />
@@ -209,7 +196,9 @@ export default function Home({ category }: HomeProps) {
         )}
 
         {featuredArticle && page === 1 && (
-          <ArticleCard article={featuredArticle} featured />
+          <div className="mb-16">
+            <ArticleCard article={featuredArticle} featured />
+          </div>
         )}
 
         {allowAdsNow && page === 1 && featuredArticle && (
@@ -225,7 +214,8 @@ export default function Home({ category }: HomeProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+        {/* GRID — ONLY spacing changed */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10">
           {(() => {
             const elements: JSX.Element[] = [];
             let adsPlaced = 0;
@@ -245,7 +235,7 @@ export default function Home({ category }: HomeProps) {
               ) {
                 adsPlaced++;
                 elements.push(
-                  <div key={`ad-${index}`} className="col-span-full my-4">
+                  <div key={`ad-${index}`} className="col-span-full">
                     {SHOW_AD_PREVIEW ? (
                       <AdPreview label="Ad between rows" />
                     ) : (
@@ -263,15 +253,12 @@ export default function Home({ category }: HomeProps) {
           })()}
         </div>
 
-        {/* ===========================
-           PAGINATION (ARROW ONLY)
-        ============================ */}
+        {/* PAGINATION — COMPLETELY UNCHANGED */}
         {totalPages > 1 && (
           <div className="mt-20 flex justify-center">
             <div className="w-full max-w-md">
               <Pagination>
                 <PaginationContent className="flex justify-center gap-2">
-                  {/* PREVIOUS */}
                   <PaginationItem>
                     <button
                       aria-label="Previous page"
@@ -287,7 +274,6 @@ export default function Home({ category }: HomeProps) {
                     </button>
                   </PaginationItem>
 
-                  {/* FIRST */}
                   {page > 3 && (
                     <>
                       <PaginationItem>
@@ -305,7 +291,6 @@ export default function Home({ category }: HomeProps) {
                     </>
                   )}
 
-                  {/* WINDOW */}
                   {getVisiblePages(page, totalPages).map((p) => (
                     <PaginationItem key={p}>
                       <PaginationLink
@@ -321,7 +306,6 @@ export default function Home({ category }: HomeProps) {
                     </PaginationItem>
                   ))}
 
-                  {/* LAST */}
                   {page < totalPages - 2 && (
                     <>
                       <span className="px-2 text-muted-foreground">…</span>
@@ -339,7 +323,6 @@ export default function Home({ category }: HomeProps) {
                     </>
                   )}
 
-                  {/* NEXT */}
                   <PaginationItem>
                     <button
                       aria-label="Next page"
