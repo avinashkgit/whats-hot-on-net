@@ -97,7 +97,7 @@ def article_share(
     db: Session = Depends(get_db),
 ):
     user_agent = request.headers.get("user-agent", "")
-    article = get_article_by_slug(db, slug)
+    article = get_article_by_slug(db, slug=slug)
 
     # Never 404 on share URLs
     if not article:
@@ -106,15 +106,14 @@ def article_share(
             status_code=302,
         )
 
+    # BOT → OG HTML
     if is_social_bot(user_agent):
-        title = html.escape(article.title or "")
-        raw_description = (
-            article.summary
-            or article.content
-            or ""
-        )
-        description = html.escape(raw_description[:160])
-        image = article.imageUrl or "https://www.hotonnet.com/icons/og.png"
+        title = html.escape(article.get("title", ""))
+
+        raw_description = article.get("summary") or article.get("content") or ""
+        description = html.escape(str(raw_description)[:160])
+
+        image = article.get("imageUrl") or "https://www.hotonnet.com/icons/og.png"
 
         return HTMLResponse(
             f"""<!doctype html>
@@ -134,8 +133,6 @@ def article_share(
   <meta property="og:site_name" content="HotOnNet" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{title}" />
-  <meta name="twitter:description" content="{description}" />
   <meta name="twitter:image" content="{image}" />
 
   <meta http-equiv="refresh"
@@ -146,10 +143,12 @@ def article_share(
             headers={"Cache-Control": "public, max-age=600"},
         )
 
+    # HUMAN → redirect to frontend
     return RedirectResponse(
         url=f"https://hotonnet.com/article/{slug}",
         status_code=302,
     )
+
 
 # --- Single article (Article page)
 @app.get("/articles/{slug}")
