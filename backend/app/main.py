@@ -1,4 +1,5 @@
-from fastapi.responses import HTMLResponse
+import html
+from fastapi.responses import HTMLResponse, RedirectResponse
 from app.db.models import NotificationTokenCreate
 from fastapi import FastAPI, Depends, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -95,44 +96,56 @@ def article_share(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    user_agent = request.headers.get("user-agent", "")
     article = get_article_by_slug(db, slug)
 
-    user_agent = request.headers.get("user-agent", "")
+    # If article missing → redirect to frontend (never 404 here)
+    if not article:
+        return RedirectResponse(
+            url=f"https://hotonnet.com/article/{slug}",
+            status_code=302,
+        )
 
     # ✅ BOT → OG HTML
-    if article and is_social_bot(user_agent):
+    if is_social_bot(user_agent):
+        title = html.escape(article.title)
+        description = html.escape(article.summary or article.content[:160])
         image = article.imageUrl or "https://www.hotonnet.com/icons/og.png"
-        description = article.summary or article.content[:160]
 
         return HTMLResponse(
             f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>{article.title}</title>
+  <title>{title}</title>
 
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="{article.title}" />
+  <meta property="og:title" content="{title}" />
   <meta property="og:description" content="{description}" />
   <meta property="og:image" content="{image}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:url" content="https://www.hotonnet.com/article/{slug}" />
+  <meta property="og:url"
+        content="https://hotonnet-backend.onrender.com/share/{slug}" />
   <meta property="og:site_name" content="HotOnNet" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="{image}" />
 
   <!-- Human redirect -->
-  <meta http-equiv="refresh" content="0; url=/article/{slug}" />
+  <meta http-equiv="refresh"
+        content="0; url=https://hotonnet.com/article/{slug}" />
 </head>
 <body></body>
 </html>""",
             headers={"Cache-Control": "public, max-age=600"},
         )
 
-    # ✅ HUMAN → serve SPA (React will load article)
-    return HTMLResponse(INDEX_HTML.read_text(encoding="utf-8"))
+    # ✅ HUMAN → redirect to frontend
+    return RedirectResponse(
+        url=f"https://hotonnet.com/article/{slug}",
+        status_code=302,
+    )
 
 
 # --- Single article (Article page)
