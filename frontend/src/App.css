@@ -330,3 +330,12 @@
   height: 48px;
   margin-right: 12px;
 }
+
+html {
+  overflow-y: scroll;
+}
+
+body {
+  overflow-x: hidden;
+}
+

@@ -10,30 +10,43 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { AdSense } from "@/components/AdSense";
 import { AdPreview } from "@/components/AdPreview";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface HomeProps {
   category?: string;
 }
 
+/* ===========================
+   WINDOWED PAGINATION HELPER
+=========================== */
+const getVisiblePages = (current: number, total: number, delta = 2) => {
+  const pages: number[] = [];
+  const start = Math.max(1, current - delta);
+  const end = Math.min(total, current + delta);
+
+  for (let i = start; i <= end; i++) pages.push(i);
+  return pages;
+};
+
 export default function Home({ category }: HomeProps) {
   const [, setLocation] = useLocation();
 
-  // ✅ Toggle this:
-  // true  => shows preview placeholder boxes (recommended for testing UI)
-  // false => shows real Google AdSense ads
-  const SHOW_AD_PREVIEW = false;
+  /* ===========================
+     ADS CONFIG
+  ============================ */
 
-  // ✅ AdSense Config
+  const SHOW_AD_PREVIEW = false;
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
   const HOME_AD_AFTER_FEATURE_ARTICLE = "2150862406";
   const HOME_AD_WITHIN_CARDS = "5898535727";
 
-  // Pagination
+  /* ===========================
+     PAGINATION (URL BASED)
+  ============================ */
+
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const page = parseInt(searchParams.get("page") || "1", 10);
@@ -45,35 +58,31 @@ export default function Home({ category }: HomeProps) {
     limit,
   });
 
+  const articles = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
+
   /* ===========================
-     RESPONSIVE CARDS PER ROW
+     RESPONSIVE GRID
   ============================ */
 
   const [cardsPerRow, setCardsPerRow] = useState(3);
 
   useEffect(() => {
-    const updateCardsPerRow = () => {
-      const width = window.innerWidth;
-
-      if (width >= 1024)
-        setCardsPerRow(3); // lg
-      else if (width >= 768)
-        setCardsPerRow(2); // md
-      else setCardsPerRow(1); // mobile
+    const update = () => {
+      const w = window.innerWidth;
+      if (w >= 1024) setCardsPerRow(3);
+      else if (w >= 768) setCardsPerRow(2);
+      else setCardsPerRow(1);
     };
 
-    updateCardsPerRow();
-    window.addEventListener("resize", updateCardsPerRow);
-
-    return () => window.removeEventListener("resize", updateCardsPerRow);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   /* ===========================
-     SAFE DEFAULTS (HOOK SAFE)
+     FEATURED + LIST
   ============================ */
-
-  const articles = data?.items ?? [];
-  const totalPages = data?.totalPages ?? 1;
 
   const featuredArticle = useMemo(() => {
     return page === 1 ? articles[0] : undefined;
@@ -85,78 +94,33 @@ export default function Home({ category }: HomeProps) {
   }, [articles, page]);
 
   /* ===========================
-     AD RULES (ADSENSE SAFE)
+     ADSENSE SAFETY
   ============================ */
 
-  // ✅ Show ads only on HOME (not category pages)
   const allowAdsOnThisPage = !category;
-
-  // ✅ Safety: only show ads if we have enough cards
   const shouldShowRowAds = allowAdsOnThisPage && listToRender.length >= 6;
-
-  // ✅ AdSense-safe cap
   const MAX_ADS_PER_PAGE = 3;
-
-  // ✅ IMPORTANT:
-  // Desktop (3 cols) => ad after every 3 cards
-  // Tablet  (2 cols) => ad after every 2 cards
-  // Mobile  (1 col)  => ad after every 2 cards (NOT every card)
   const cardsPerAd = cardsPerRow === 1 ? 2 : cardsPerRow;
-
-  /* ===========================
-     ✅ FIX FOR ADSENSE VIOLATION
-     "Google-served ads on screens without publisher content"
-  ============================ */
 
   const [readyToShowAds, setReadyToShowAds] = useState(false);
 
   useEffect(() => {
-    // Reset when page/category changes
     setReadyToShowAds(false);
-
-    // Wait until real content is loaded
     if (!data || isLoading) return;
 
-    // Small delay so content paints before ads load
-    const t = window.setTimeout(() => {
-      setReadyToShowAds(true);
-    }, 800);
-
+    const t = window.setTimeout(() => setReadyToShowAds(true), 800);
     return () => window.clearTimeout(t);
   }, [data, isLoading, page, category]);
 
-  // ✅ Must have enough real content before ads show
-  // Page 1: needs featured + enough cards
-  // Page 2+: needs enough cards
   const hasEnoughContent =
     page === 1
       ? !!featuredArticle && listToRender.length >= 6
       : listToRender.length >= 6;
 
-  // ✅ Final safe validation (use this everywhere for ads)
   const allowAdsNow = allowAdsOnThisPage && readyToShowAds && hasEnoughContent;
 
   /* ===========================
-     ERROR STATE
-  ============================ */
-
-  if (error) {
-    console.error("ARTICLES QUERY ERROR:", error);
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-        <h2 className="text-2xl font-bold mb-4">Unable to load articles</h2>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-primary text-primary-foreground rounded-full font-bold"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  /* ===========================
-     PAGINATION HANDLER
+     PAGE CHANGE HANDLER
   ============================ */
 
   const handlePageChange = (newPage: number) => {
@@ -166,42 +130,35 @@ export default function Home({ category }: HomeProps) {
     const basePath = category ? `/category/${category}` : "/";
     setLocation(`${basePath}?${params.toString()}`);
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("page-top")?.scrollIntoView({
+      behavior: "smooth",
+    });
   };
 
   /* ===========================
-     LOADING STATE
+     ERROR STATE (PRODUCTION)
   ============================ */
 
-  if (isLoading && !data) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
+      <div className="min-h-screen flex flex-col overflow-x-hidden">
         <Navigation />
 
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex-grow">
-          {/* HERO HEADER (HOME ONLY) */}
-          {!category && page === 1 && (
-            <div className="mb-12 text-center max-w-2xl mx-auto">
-              <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-4 leading-tight">
-                Stories that matter, trending across the world.
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Essential news, science, tech, culture, and global insights.
-              </p>
-            </div>
-          )}
+        <main className="container mx-auto px-4 py-24 flex-grow flex flex-col items-center justify-center text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            Unable to load articles
+          </h2>
 
-          {/* FEATURED SKELETON */}
-          {!category && page === 1 && <ArticleCardSkeleton featured />}
+          <p className="text-muted-foreground max-w-md mb-8">
+            Something went wrong while fetching stories. Please try again.
+          </p>
 
-          {page === 1 && <div className="border-t border-border my-16" />}
-
-          {/* GRID SKELETON */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-            {Array.from({ length: page === 1 ? 9 : 10 }).map((_, i) => (
-              <ArticleCardSkeleton key={i} />
-            ))}
-          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 rounded-md bg-primary text-primary-foreground font-semibold hover:opacity-90"
+          >
+            Try again
+          </button>
         </main>
 
         <Footer />
@@ -209,93 +166,92 @@ export default function Home({ category }: HomeProps) {
     );
   }
 
-  if (!data) return null;
+  /* ===========================
+     LOADING STATE
+  ============================ */
+
+  if (isLoading && !data) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navigation />
+        <main className="container mx-auto px-4 py-16">
+          {!category && <ArticleCardSkeleton featured />}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <ArticleCardSkeleton key={i} />
+            ))}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  /* ===========================
+     RENDER
+  ============================ */
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <div id="page-top" />
       <Navigation />
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex-grow">
-        {/* HERO HEADER (HOME ONLY) */}
+      <main className="container mx-auto px-4 py-16 flex-grow">
         {!category && page === 1 && (
           <div className="mb-12 text-center max-w-2xl mx-auto">
-            <h1 className="text-3xl md:text-5xl font-display font-black tracking-tight mb-4 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-black mb-4">
               Stories that matter, trending across the world.
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-muted-foreground">
               Essential news, science, tech, culture, and global insights.
             </p>
           </div>
         )}
 
-        {/* FEATURED ARTICLE */}
         {featuredArticle && page === 1 && (
           <ArticleCard article={featuredArticle} featured />
         )}
 
-        {/* ✅ AD AFTER FEATURED (PAGE 1 ONLY) */}
         {allowAdsNow && page === 1 && featuredArticle && (
           <div className="my-10">
             {SHOW_AD_PREVIEW ? (
-              <AdPreview label="Ad after Featured Article" />
+              <AdPreview label="Ad after Featured" />
             ) : (
               <AdSense
                 adClient={ADSENSE_CLIENT}
                 adSlot={HOME_AD_AFTER_FEATURE_ARTICLE}
-                className="max-w-4xl mx-auto"
               />
             )}
           </div>
         )}
 
-        {/* ✅ FIX: divider only when featured exists */}
-        {featuredArticle && page === 1 && (
-          <div className="border-t border-border my-16" />
-        )}
-
-        {/* ===========================
-            ARTICLE GRID + ADS
-            Desktop/Tab: after each row
-            Mobile: after every 2 cards
-        ============================ */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
           {(() => {
             const elements: JSX.Element[] = [];
             let adsPlaced = 0;
 
             listToRender.forEach((article, index) => {
-              // Article card
-              elements.push(
-                <ArticleCard key={`article-${article.id}`} article={article} />,
-              );
+              elements.push(<ArticleCard key={article.id} article={article} />);
 
-              // Insert Ad after row
               const isEndOfRow = (index + 1) % cardsPerAd === 0;
-              const isNotLastCard = index !== listToRender.length - 1;
+              const isNotLast = index !== listToRender.length - 1;
 
-              const shouldInsertAd =
+              if (
                 allowAdsNow &&
                 shouldShowRowAds &&
                 isEndOfRow &&
-                isNotLastCard &&
-                adsPlaced < MAX_ADS_PER_PAGE;
-
-              if (shouldInsertAd) {
+                isNotLast &&
+                adsPlaced < MAX_ADS_PER_PAGE
+              ) {
                 adsPlaced++;
-
                 elements.push(
-                  <div
-                    key={`ad-${index}`}
-                    className="w-full col-span-1 md:col-span-2 lg:col-span-3 my-2"
-                  >
-                    {/* ✅ SHOW_AD_PREVIEW works on page 2+ also */}
+                  <div key={`ad-${index}`} className="col-span-full my-4">
                     {SHOW_AD_PREVIEW ? (
                       <AdPreview label="Ad between rows" />
                     ) : (
                       <AdSense
                         adClient={ADSENSE_CLIENT}
                         adSlot={HOME_AD_WITHIN_CARDS}
-                        className="w-full"
                       />
                     )}
                   </div>,
@@ -307,75 +263,102 @@ export default function Home({ category }: HomeProps) {
           })()}
         </div>
 
-        {/* EMPTY STATE */}
-        {articles.length === 0 && (
-          <div className="text-center py-20 bg-muted/30 rounded-3xl">
-            <h3 className="text-xl font-bold text-muted-foreground">
-              No articles found in this category.
-            </h3>
-            <button
-              onClick={() => setLocation("/")}
-              className="mt-4 text-primary font-bold hover:underline"
-            >
-              Browse all articles
-            </button>
-          </div>
-        )}
-
-        {/* PAGINATION */}
+        {/* ===========================
+           PAGINATION (ARROW ONLY)
+        ============================ */}
         {totalPages > 1 && (
-          <div className="mt-20">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (page > 1) handlePageChange(page - 1);
-                    }}
-                    className={
-                      page <= 1
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
+          <div className="mt-20 flex justify-center">
+            <div className="w-full max-w-md">
+              <Pagination>
+                <PaginationContent className="flex justify-center gap-2">
+                  {/* PREVIOUS */}
+                  <PaginationItem>
+                    <button
+                      aria-label="Previous page"
+                      onClick={() => page > 1 && handlePageChange(page - 1)}
+                      className={`h-9 w-9 flex items-center justify-center rounded-md border transition
+                        ${
+                          page === 1
+                            ? "pointer-events-none opacity-40"
+                            : "hover:bg-muted"
+                        }`}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                  </PaginationItem>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (pageNum) => (
-                    <PaginationItem key={pageNum}>
+                  {/* FIRST */}
+                  {page > 3 && (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(1);
+                          }}
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      <span className="px-2 text-muted-foreground">…</span>
+                    </>
+                  )}
+
+                  {/* WINDOW */}
+                  {getVisiblePages(page, totalPages).map((p) => (
+                    <PaginationItem key={p}>
                       <PaginationLink
                         href="#"
-                        isActive={pageNum === page}
+                        isActive={p === page}
                         onClick={(e) => {
                           e.preventDefault();
-                          handlePageChange(pageNum);
+                          handlePageChange(p);
                         }}
-                        className="cursor-pointer"
                       >
-                        {pageNum}
+                        {p}
                       </PaginationLink>
                     </PaginationItem>
-                  ),
-                )}
+                  ))}
 
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (page < totalPages) handlePageChange(page + 1);
-                    }}
-                    className={
-                      page >= totalPages
-                        ? "pointer-events-none opacity-50"
-                        : "cursor-pointer"
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                  {/* LAST */}
+                  {page < totalPages - 2 && (
+                    <>
+                      <span className="px-2 text-muted-foreground">…</span>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(totalPages);
+                          }}
+                        >
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+
+                  {/* NEXT */}
+                  <PaginationItem>
+                    <button
+                      aria-label="Next page"
+                      onClick={() =>
+                        page < totalPages && handlePageChange(page + 1)
+                      }
+                      className={`h-9 w-9 flex items-center justify-center rounded-md border transition
+                        ${
+                          page === totalPages
+                            ? "pointer-events-none opacity-40"
+                            : "hover:bg-muted"
+                        }`}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </div>
         )}
       </main>
