@@ -1,9 +1,10 @@
 from fastapi.responses import HTMLResponse
 from app.db.models import NotificationTokenCreate
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Path, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from uuid import UUID
+from pathlib import Path
 
 from app.db.database import SessionLocal
 from app.db.repository import (
@@ -14,6 +15,7 @@ from app.db.repository import (
 )
 
 app = FastAPI(title="HotOnNet API")
+INDEX_HTML = Path("dist/index.html")
 
 # =========================
 # CORS CONFIGURATION
@@ -30,6 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def is_social_bot(user_agent: str | None) -> bool:
     if not user_agent:
         return False
@@ -43,11 +46,10 @@ def is_social_bot(user_agent: str | None) -> bool:
         "linkedinbot",
         "slackbot",
         "discordbot",
-        "googlebot",
-        "bingbot",
     ]
 
     return any(bot in ua for bot in bots)
+
 
 # =========================
 # DB Dependency
@@ -87,21 +89,18 @@ def articles(
     )
 
 
-@app.get("/article/{slug}", response_class=HTMLResponse)
-def article(
+@app.get("/share/{slug}", response_class=HTMLResponse)
+def article_share(
     slug: str,
     request: Request,
     db: Session = Depends(get_db),
 ):
     article = get_article_by_slug(db, slug)
 
-    if not article:
-        return HTMLResponse("Not found", status_code=404)
+    user_agent = request.headers.get("user-agent", "")
 
-    user_agent = request.headers.get("user-agent")
-
-    # ✅ BOT → serve OG HTML
-    if is_social_bot(user_agent):
+    # ✅ BOT → OG HTML
+    if article and is_social_bot(user_agent):
         image = article.imageUrl or "https://www.hotonnet.com/icons/og.png"
         description = article.summary or article.content[:160]
 
@@ -122,31 +121,27 @@ def article(
   <meta property="og:site_name" content="HotOnNet" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{article.title}" />
-  <meta name="twitter:description" content="{description}" />
   <meta name="twitter:image" content="{image}" />
 
-  <!-- Redirect real browsers -->
+  <!-- Human redirect -->
   <meta http-equiv="refresh" content="0; url=/article/{slug}" />
 </head>
 <body></body>
 </html>""",
-            headers={
-                "Cache-Control": "public, max-age=600",
-            },
+            headers={"Cache-Control": "public, max-age=600"},
         )
+
+    # ✅ HUMAN → serve SPA (React will load article)
+    return HTMLResponse(INDEX_HTML.read_text(encoding="utf-8"))
 
 
 # --- Single article (Article page)
-# @app.get("/articles/{slug}")
-# def article(slug: str, db: Session = Depends(get_db)):
-#     article = get_article_by_slug(db, slug=slug)
-#     if not article:
-#         raise HTTPException(
-#             status_code=404,
-#             detail=f"Article not found"
-#         )
-#     return article
+@app.get("/articles/{slug}")
+def article(slug: str, db: Session = Depends(get_db)):
+    article = get_article_by_slug(db, slug=slug)
+    if not article:
+        raise HTTPException(status_code=404, detail=f"Article not found")
+    return article
 
 
 @app.get("/health")
