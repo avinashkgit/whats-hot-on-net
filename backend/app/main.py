@@ -108,6 +108,11 @@ def get_db():
 api = APIRouter(prefix="/api")
 
 
+@app.get("/")
+def root():
+    return RedirectResponse(url="https://www.hotonnet.com", status_code=302)
+
+
 # --- Topics (Navigation / Filters)
 @api.get("/categories")
 def topics(db: Session = Depends(get_db)):
