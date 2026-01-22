@@ -74,7 +74,7 @@ export function Footer() {
         </div>
 
         <div className="pt-8 text-center md:text-left text-xs text-muted-foreground">
-          © {new Date().getFullYear()} (hotonnet.com) All rights reserved.
+          © {new Date().getFullYear()} hotonnet.com All rights reserved.
         </div>
       </div>
     </footer>
