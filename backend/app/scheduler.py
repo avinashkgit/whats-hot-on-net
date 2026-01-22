@@ -10,7 +10,7 @@ from agents.image_prompt_agent import ImagePromptAgent
 from agents.image_agent import ImageAgent
 from agents.x_poster_agent import XPosterAgent
 
-from app.app.services.fcm_service import send_push_to_tokens
+from app.services.fcm_service import send_push_to_tokens
 from app.db.database import SessionLocal
 from app.db.repository import (
     get_active_notification_tokens,
