@@ -2,13 +2,13 @@ RewriteEngine On
 RewriteBase /
 
 # ===============================
-# 1️⃣ SITEMAPS (MUST COME FIRST)
+# 1️⃣ SITEMAP REDIRECTS (HOSTINGER SAFE)
 # ===============================
-RewriteRule ^sitemap\.xml$ https://api.hotonnet.com/sitemap.xml [P,L]
-RewriteRule ^news-sitemap\.xml$ https://api.hotonnet.com/news-sitemap.xml [P,L]
+RewriteRule ^sitemap\.xml$ https://api.hotonnet.com/sitemap.xml [R=301,L]
+RewriteRule ^news-sitemap\.xml$ https://api.hotonnet.com/news-sitemap.xml [R=301,L]
 
 # ===============================
-# 2️⃣ NORMAL FILES
+# 2️⃣ EXISTING FILES / FOLDERS
 # ===============================
 RewriteRule ^index\.html$ - [L]
 
@@ -17,6 +17,6 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # ===============================
-# 3️⃣ SPA FALLBACK (LAST)
+# 3️⃣ SPA FALLBACK
 # ===============================
 RewriteRule . /index.html [L]
