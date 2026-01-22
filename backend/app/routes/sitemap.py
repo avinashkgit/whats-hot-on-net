@@ -42,7 +42,7 @@ def sitemap(db: Session = Depends(get_db)):
     xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
 
     for article in articles:
-        if not article.slug or not article.published_at:
+        if not article.slug or not article.created_at:
             continue
 
         xml.append(f"""
@@ -80,12 +80,12 @@ def news_sitemap(db: Session = Depends(get_db)):
             break
 
         for article in batch:
-            if article.published_at and article.published_at >= cutoff:
+            if article.created_at and article.created_at >= cutoff:
                 recent_articles.append(article)
 
         # Stop early once we hit only old articles
         if all(
-            article.published_at and article.published_at < cutoff
+            article.created_at and article.created_at < cutoff
             for article in batch
         ):
             break
@@ -100,7 +100,7 @@ def news_sitemap(db: Session = Depends(get_db)):
 
     # Google News limit: max 1000 URLs
     for article in recent_articles[:1000]:
-        if not article.slug or not article.title or not article.published_at:
+        if not article.slug or not article.title or not article.created_at:
             continue
 
         xml.append(f"""
@@ -111,7 +111,7 @@ def news_sitemap(db: Session = Depends(get_db)):
         <news:name>{SITE_NAME}</news:name>
         <news:language>{LANG}</news:language>
       </news:publication>
-      <news:publication_date>{article.published_at.isoformat()}</news:publication_date>
+      <news:publication_date>{article.created_at.isoformat()}</news:publication_date>
       <news:title>{article.title}</news:title>
     </news:news>
   </url>
