@@ -1,19 +1,6 @@
 import os
-import logging
 import requests
 from typing import Optional
-
-# -------------------------------------------------
-# LOGGING CONFIG
-# -------------------------------------------------
-logger = logging.getLogger("indexing")
-logger.setLevel(logging.INFO)
-
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
 # -------------------------------------------------
 # BING CONFIG
@@ -33,7 +20,7 @@ def submit_url_to_bing(url: str) -> bool:
     """
 
     if not BING_API_KEY:
-        logger.error("BING_API_KEY is missing in environment variables")
+        print("❌ BING_API_KEY is missing in environment variables")
         return False
 
     payload = {
@@ -45,7 +32,7 @@ def submit_url_to_bing(url: str) -> bool:
     headers = {"Content-Type": "application/json"}
 
     try:
-        logger.info(f"Submitting URL to Bing: {url}")
+        print(f"📌 Submitting URL to Bing: {url}")
 
         response = requests.post(
             BING_ENDPOINT,
@@ -55,22 +42,20 @@ def submit_url_to_bing(url: str) -> bool:
         )
 
         if response.status_code == 200:
-            logger.info("Bing indexing successful")
+            print("✅ Bing indexing successful")
             return True
 
-        logger.error(
-            "Bing indexing failed | Status: %s | Response: %s",
-            response.status_code,
-            response.text,
+        print(
+            f"❌ Bing indexing failed | Status: {response.status_code} | Response: {response.text}"
         )
         return False
 
     except requests.exceptions.Timeout:
-        logger.error("Bing indexing request timed out")
+        print("⏳ Bing indexing request timed out")
         return False
 
     except requests.exceptions.RequestException as e:
-        logger.exception("Bing indexing request failed")
+        print(f"❌ Bing indexing request failed: {e}")
         return False
 
 
@@ -87,20 +72,17 @@ def ping_google_sitemap(sitemap_url: Optional[str] = None) -> bool:
     ping_url = f"https://www.google.com/ping?sitemap={sitemap_url}"
 
     try:
-        logger.info(f"Pinging Google sitemap: {sitemap_url}")
+        print(f"📡 Pinging Google sitemap: {sitemap_url}")
 
         response = requests.get(ping_url, timeout=5)
 
         if response.status_code == 200:
-            logger.info("Google sitemap ping successful")
+            print("✅ Google sitemap ping successful")
             return True
 
-        logger.warning(
-            "Google sitemap ping failed | Status: %s",
-            response.status_code,
-        )
+        print(f"⚠️ Google sitemap ping failed | Status: {response.status_code}")
         return False
 
-    except requests.exceptions.RequestException:
-        logger.exception("Google sitemap ping failed")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Google sitemap ping failed: {e}")
         return False

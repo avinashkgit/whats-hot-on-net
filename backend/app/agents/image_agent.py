@@ -284,14 +284,20 @@ def generate_gemini_image_same_model_retry(
             msg = str(e)
 
             # Retry only for overload/unavailable
-            is_overload = (
+            is_retryable = (
                 "503" in msg
                 or "UNAVAILABLE" in msg
                 or "overloaded" in msg.lower()
                 or "The model is overloaded" in msg
+                # ✅ retry for broken/empty Gemini response too
+                or "NoneType" in msg
+                or "has no attribute 'parts'" in msg
+                or "candidates" in msg.lower()
+                or "parts" in msg.lower()
+                or "returned no image" in msg.lower()
             )
 
-            if is_overload and attempt < max_retries:
+            if is_retryable and attempt < max_retries:
                 sleep_time = (base_delay * (2 ** (attempt - 1))) + random.uniform(
                     0, jitter
                 )
