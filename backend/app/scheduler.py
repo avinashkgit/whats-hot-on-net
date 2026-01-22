@@ -11,6 +11,7 @@ from agents.image_agent import ImageAgent
 from agents.x_poster_agent import XPosterAgent
 
 from app.services.fcm_service import send_push_to_tokens
+from app.services.url_indexing_service import submit_url_to_bing, ping_google_sitemap
 from app.db.database import SessionLocal
 from app.db.repository import (
     get_active_notification_tokens,
@@ -146,6 +147,9 @@ def run():
         )
 
         print("✅ Push sent:", push_resp)
+
+        submit_url_to_bing(article_url)
+        ping_google_sitemap()
 
     finally:
         db.close()
