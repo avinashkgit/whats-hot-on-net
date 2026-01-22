@@ -1,8 +1,13 @@
 User-agent: *
-Disallow: /api/
+Allow: /
+
 Disallow: /admin/
 Disallow: /login/
 Disallow: /preview/
+
+# Allow sitemap fetch from backend
+Allow: /api/sitemap.xml
+Allow: /api/news-sitemap.xml
 
 Sitemap: https://hotonnet.com/sitemap.xml
 Sitemap: https://hotonnet.com/news-sitemap.xml
