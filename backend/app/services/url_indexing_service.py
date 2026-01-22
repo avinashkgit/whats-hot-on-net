@@ -57,32 +57,3 @@ def submit_url_to_bing(url: str) -> bool:
     except requests.exceptions.RequestException as e:
         print(f"❌ Bing indexing request failed: {e}")
         return False
-
-
-# -------------------------------------------------
-# GOOGLE SITEMAP PING
-# -------------------------------------------------
-def ping_google_sitemap(sitemap_url: Optional[str] = None) -> bool:
-    """
-    Ping Google to notify sitemap update.
-    This does NOT guarantee indexing.
-    """
-
-    sitemap_url = sitemap_url or f"{SITE_URL}/news-sitemap.xml"
-    ping_url = f"https://www.google.com/ping?sitemap={sitemap_url}"
-
-    try:
-        print(f"📡 Pinging Google sitemap: {sitemap_url}")
-
-        response = requests.get(ping_url, timeout=5)
-
-        if response.status_code == 200:
-            print("✅ Google sitemap ping successful")
-            return True
-
-        print(f"⚠️ Google sitemap ping failed | Status: {response.status_code}")
-        return False
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Google sitemap ping failed: {e}")
-        return False
