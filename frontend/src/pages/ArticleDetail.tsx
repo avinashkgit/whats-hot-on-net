@@ -106,13 +106,14 @@ export default function ArticleDetail() {
   ========================== */
 
   const readTime = Math.max(1, Math.ceil(article.content.length / 1000));
-  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  // ✅ FIX 1: Stable canonical (no window dependency)
+  const canonicalUrl = `https://hotonnet.com/article/${slug}`;
 
   const seoTitle = article.title;
   const seoDescription =
     article.summary || article.content.substring(0, 160) + "...";
   const seoImage = article.imageUrl || "";
-  const canonicalUrl = pageUrl || `https://hotonnet.com/article/${slug}`;
 
   const handleShare = async () => {
     try {
@@ -146,19 +147,47 @@ export default function ArticleDetail() {
       <Helmet>
         <title>{seoTitle} | HotOnNet</title>
         <meta name="description" content={seoDescription} />
+
+        <link rel="canonical" href={canonicalUrl} />
+
+        <meta property="og:type" content="article" />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:image" content={seoImage} />
         <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:type" content="article" />
         <meta property="og:site_name" content="HotOnNet" />
+
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content={seoImage} />
         <meta name="twitter:creator" content="@avinash2it" />
         <meta name="twitter:site" content="@hotonnet_com" />
-        <link rel="canonical" href={canonicalUrl} />
+
+        {/* ✅ FIX 2: Google News structured data */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            headline: article.title,
+            datePublished: article.createdAt,
+            dateModified: article.updatedAt || article.createdAt,
+            author: {
+              "@type": "Organization",
+              name: "Hot On Net",
+            },
+            publisher: {
+              "@type": "Organization",
+              name: "Hot On Net",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://hotonnet.com/icons/favicon-96x96.png",
+              },
+            },
+            image: article.imageUrl ? [article.imageUrl] : [],
+            mainEntityOfPage: canonicalUrl,
+          })}
+        </script>
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -187,9 +216,12 @@ export default function ArticleDetail() {
 
                 {/* META + MOBILE SHARE */}
                 <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground border-t border-border pt-6">
+                  {/* ✅ FIX 3: machine-readable publish date */}
                   <span className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    {format(new Date(article.createdAt), "MMMM d, yyyy")}
+                    <time dateTime={article.createdAt}>
+                      {format(new Date(article.createdAt), "MMMM d, yyyy")}
+                    </time>
                   </span>
 
                   <span className="flex items-center gap-2">
@@ -202,7 +234,6 @@ export default function ArticleDetail() {
                     {(article.views ?? 0).toLocaleString()} views
                   </span>
 
-                  {/* MOBILE SHARE */}
                   <div className="flex items-center gap-3 md:hidden text-primary font-semibold">
                     <button
                       onClick={handleShare}

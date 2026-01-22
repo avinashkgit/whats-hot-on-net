@@ -19,6 +19,7 @@ export interface Article {
   categoryId: string;
   views: number;
   createdAt: string;     // ISO string from API
+  updatedAt: string;     // ISO string from API
 }
 
 // Article joined with topic

@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.routes import sitemap
+
 from app.db.database import SessionLocal
 from app.db.models import NotificationTokenCreate
 from app.db.repository import (
@@ -43,6 +45,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(sitemap.router)
 
 
 # =========================

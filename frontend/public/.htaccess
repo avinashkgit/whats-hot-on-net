@@ -8,3 +8,6 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
 RewriteRule . /index.html [L]
+
+RewriteRule ^sitemap\.xml$ https://api.hotonnet.com/sitemap.xml [P,L]
+RewriteRule ^news-sitemap\.xml$ https://api.hotonnet.com/news-sitemap.xml [P,L]
