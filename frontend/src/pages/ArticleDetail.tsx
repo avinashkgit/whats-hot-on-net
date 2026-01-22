@@ -10,7 +10,7 @@ import { useRoute } from "wouter";
 import { ArticleDetailSkeleton } from "./ArticleDetailSkeleton";
 import { AdSense } from "@/components/AdSense";
 import { AdPreview } from "@/components/AdPreview";
-import { WEB_URL } from "@/api/apiClient";
+import { API_URL } from "@/api/apiClient";
 
 export default function ArticleDetail() {
   const [, params] = useRoute("/article/:slug");
@@ -24,8 +24,7 @@ export default function ArticleDetail() {
   const ADSENSE_CLIENT = "ca-pub-4156721166651159";
   const ARTICLE_DETAIL_PARAGRAPHS = "9646209040";
 
-  const SHARE_BASE = `${WEB_URL}/share`;
-  const shareUrl = `${SHARE_BASE}/${slug}`;
+  const SHARE_URL = `${API_URL}/share/${slug}`;
 
   // ✅ IMPORTANT: hooks must be ABOVE any return
   const paragraphs = useMemo(() => {
@@ -121,11 +120,10 @@ export default function ArticleDetail() {
         await navigator.share({
           title: article.title,
           text: article.summary,
-          url: shareUrl, // ✅ backend share URL
+          url: SHARE_URL, // ✅ backend share URL
         });
       } else {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("Link copied to clipboard");
+        await navigator.clipboard.writeText(SHARE_URL);
       }
     } catch (e) {
       console.log("Share failed:", e);
@@ -134,11 +132,9 @@ export default function ArticleDetail() {
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert("Link copied!");
+      await navigator.clipboard.writeText(SHARE_URL);
     } catch (e) {
       console.log("Copy failed:", e);
-      alert("Could not copy link");
     }
   };
 

@@ -7,21 +7,20 @@ import {
   NotificationTokenCreate,
 } from "@/models/schema";
 
-const API_BASE = `https://api.hotonnet.com`;
-export const WEB_URL = `https://hotonnet.com`;
-// const API_BASE = "http://127.0.0.1:8000";
+export const API_URL = 'https://api.hotonnet.com';
+// const API_URL = "http://127.0.0.1:8000";
 
 const routes = {
   categories: {
-    list: `${API_BASE}/categories`,
+    list: `${API_URL}/categories`,
   },
   articles: {
-    list: `${API_BASE}/articles`,
-    get: (slug: string) => `${API_BASE}/article/${slug}`,
-    create: `${API_BASE}/articles`,
+    list: `${API_URL}/articles`,
+    get: (slug: string) => `${API_URL}/article/${slug}`,
+    create: `${API_URL}/articles`,
   },
   notifications: {
-    saveToken: `${API_BASE}/notifications/token`,
+    saveToken: `${API_URL}/notifications/token`,
   },
 };
 
