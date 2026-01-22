@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from xml.sax.saxutils import escape
 
 from app.db.database import SessionLocal
-from app.db.repository import get_articles
+from app.db.repository import get_articles_for_sitemap
 
 router = APIRouter()
 
@@ -64,7 +64,7 @@ def sitemap(db: Session = Depends(get_db)):
 
     # Paginate through all articles
     while True:
-        batch = get_articles(db, page=page, limit=limit)
+        batch = get_articles_for_sitemap(db, page=page, limit=limit)
         if not batch:
             break
         articles.extend(batch)
@@ -115,7 +115,7 @@ def news_sitemap(db: Session = Depends(get_db)):
 
     # Paginate until articles are older than 48h
     while True:
-        batch = get_articles(db, page=page, limit=limit)
+        batch = get_articles_for_sitemap(db, page=page, limit=limit)
         if not batch:
             break
 

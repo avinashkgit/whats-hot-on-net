@@ -191,3 +191,7 @@ def get_active_notification_tokens(db):
         .all()
     )
     return [r[0] for r in rows]
+
+def get_articles_for_sitemap(db: Session, page: int = 1, limit: int = 500):
+    query = db.query(Article).order_by(Article.created_at.desc())
+    return query.offset((page - 1) * limit).limit(limit).all()
