@@ -1,13 +1,22 @@
 RewriteEngine On
-
 RewriteBase /
 
-RewriteRule ^index\.html$ - [L]
-
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-
-RewriteRule . /index.html [L]
-
+# ===============================
+# 1️⃣ SITEMAPS (MUST COME FIRST)
+# ===============================
 RewriteRule ^sitemap\.xml$ https://api.hotonnet.com/sitemap.xml [P,L]
 RewriteRule ^news-sitemap\.xml$ https://api.hotonnet.com/news-sitemap.xml [P,L]
+
+# ===============================
+# 2️⃣ NORMAL FILES
+# ===============================
+RewriteRule ^index\.html$ - [L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ===============================
+# 3️⃣ SPA FALLBACK (LAST)
+# ===============================
+RewriteRule . /index.html [L]
