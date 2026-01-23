@@ -21,7 +21,7 @@ class ImagePromptAgent:
     MAX_NEGATIVE_LEN = 1024
 
     ALLOWED_CATEGORIES = {
-        "Politics",
+        "Global Affairs",
         "Science",
         "Tech",
         "Business",
