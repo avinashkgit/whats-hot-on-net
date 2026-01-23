@@ -16,7 +16,7 @@ xai_client = OpenAI(
 )
 
 ALLOWED_CATEGORIES = [
-    "News",
+    "Politis",
     "Science",
     "Tech",
     "Business",

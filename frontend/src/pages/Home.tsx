@@ -163,6 +163,17 @@ export default function Home({ category }: HomeProps) {
       <div className="min-h-screen flex flex-col">
         <Navigation />
         <main className="container mx-auto px-4 py-16">
+          {!category && page === 1 && (
+            <div className="mb-12 text-center max-w-2xl mx-auto">
+              <h1 className="text-4xl md:text-5xl font-black mb-4">
+                Stories that matter, trending across the world.
+              </h1>
+              <p className="text-muted-foreground">
+                Essential news, science, tech, culture, and global insights.
+              </p>
+            </div>
+          )}
+
           {!category && <ArticleCardSkeleton featured />}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
             {Array.from({ length: 9 }).map((_, i) => (
