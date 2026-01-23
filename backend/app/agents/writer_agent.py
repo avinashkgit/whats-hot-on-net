@@ -16,7 +16,7 @@ xai_client = OpenAI(
 )
 
 ALLOWED_CATEGORIES = [
-    "Politis",
+    "Global Affairs",
     "Science",
     "Tech",
     "Business",
