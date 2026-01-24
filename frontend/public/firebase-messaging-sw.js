@@ -24,6 +24,7 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, {
     body,
     icon: "/icons/web-app-manifest-192x192.png",
+    badge: "/icons/web-app-manifest-192x192.png",
     image: image || undefined,
     data: { url },
   });

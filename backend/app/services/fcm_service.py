@@ -48,11 +48,6 @@ def send_push_to_tokens(
             headers={
                 "Urgency": "high",
             },
-            # Optional: browser metadata (does NOT create duplicates)
-            notification=messaging.WebpushNotification(
-                icon="https://hotonnet.com/icons/web-app-manifest-192x192.png",
-                badge="https://hotonnet.com/icons/web-app-manifest-192x192.png",
-            ),
         ),
     )
 
