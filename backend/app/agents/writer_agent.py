@@ -2,18 +2,24 @@ import os
 import json
 from dotenv import load_dotenv
 from openai import OpenAI, OpenAIError
+from google import genai
+from google.genai import types
 from constants import GPT_MODEL
 
 load_dotenv()
 
-# Primary client (OpenAI)
+# ── OpenAI (Primary) ─────────────────────────────────────────────
 openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-# Fallback client (xAI Grok)
+# ── xAI Grok (Secondary) ─────────────────────────────────────────
 xai_client = OpenAI(
     api_key=os.environ["XAI_API_KEY"],
     base_url="https://api.x.ai/v1",
 )
+
+# ── Gemini (Tertiary) ────────────────────────────────────────────
+gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+GEMINI_MODEL = "gemini-2.5-flash"
 
 ALLOWED_CATEGORIES = [
     "Global Affairs",
@@ -66,9 +72,10 @@ Choose EXACTLY ONE category from this list:
             {"role": "user", "content": user_message},
         ]
 
-        openai_error = None  # ← FIX: ensure variable always exists
+        openai_error = None
+        grok_error = None
 
-        # ── Primary attempt: OpenAI ──
+        # ── 1️⃣ OpenAI ─────────────────────────────────────────────
         try:
             response = openai_client.chat.completions.create(
                 model=GPT_MODEL,
@@ -99,11 +106,11 @@ Choose EXACTLY ONE category from this list:
             )
 
             msg = response.choices[0].message
-
-            if hasattr(msg, "parsed") and msg.parsed:
-                data = msg.parsed
-            else:
-                data = json.loads(msg.content)
+            data = (
+                msg.parsed
+                if hasattr(msg, "parsed") and msg.parsed
+                else json.loads(msg.content)
+            )
 
             return {
                 "title": data["title"].strip(),
@@ -117,12 +124,10 @@ Choose EXACTLY ONE category from this list:
             openai_error = e
             print(f"OpenAI failed: {e.__class__.__name__} – falling back to Grok...")
 
-        # ── Fallback: xAI Grok ──
-        FALLBACK_MODEL = "grok-4"
-
+        # ── 2️⃣ xAI Grok ───────────────────────────────────────────
         try:
             response = xai_client.chat.completions.create(
-                model=FALLBACK_MODEL,
+                model="grok-4",
                 temperature=0.3,
                 max_tokens=1800,
                 messages=messages,
@@ -150,11 +155,11 @@ Choose EXACTLY ONE category from this list:
             )
 
             msg = response.choices[0].message
-
-            if hasattr(msg, "parsed") and msg.parsed:
-                data = msg.parsed
-            else:
-                data = json.loads(msg.content)
+            data = (
+                msg.parsed
+                if hasattr(msg, "parsed") and msg.parsed
+                else json.loads(msg.content)
+            )
 
             return {
                 "title": data["title"].strip(),
@@ -164,9 +169,41 @@ Choose EXACTLY ONE category from this list:
                 "provider": "xai-grok",
             }
 
-        except Exception as fallback_e:
+        except Exception as e:
+            grok_error = e
+            print(f"Grok failed: {e.__class__.__name__} – falling back to Gemini...")
+
+        # ── 3️⃣ Gemini ─────────────────────────────────────────────
+        try:
+            response = gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    types.Content(
+                        role="system", parts=[types.Part(text=system_message)]
+                    ),
+                    types.Content(role="user", parts=[types.Part(text=user_message)]),
+                ],
+                generation_config=types.GenerationConfig(
+                    temperature=0.3,
+                    max_output_tokens=1800,
+                    response_mime_type="application/json",
+                ),
+            )
+
+            data = json.loads(response.text)
+
+            return {
+                "title": data["title"].strip(),
+                "summary": data["summary"].strip(),
+                "body": data["body"].strip(),
+                "category": data["category"],
+                "provider": "gemini",
+            }
+
+        except Exception as gemini_error:
             raise RuntimeError(
-                "Both OpenAI and xAI fallback failed!\n"
+                "All providers failed!\n"
                 f"OpenAI: {openai_error}\n"
-                f"xAI:    {fallback_e}"
+                f"Grok:   {grok_error}\n"
+                f"Gemini: {gemini_error}"
             )
