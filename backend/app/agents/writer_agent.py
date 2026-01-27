@@ -19,7 +19,7 @@ xai_client = OpenAI(
 
 # ── Gemini (Tertiary) ────────────────────────────────────────────
 gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-2.0-flash"  # Note: ensure model name matches available versions
 
 ALLOWED_CATEGORIES = [
     "Global Affairs",
@@ -127,7 +127,7 @@ Choose EXACTLY ONE category from this list:
         # ── 2️⃣ xAI Grok ───────────────────────────────────────────
         try:
             response = xai_client.chat.completions.create(
-                model="grok-4",
+                model="grok-beta", # Update to your specific model identifier
                 temperature=0.3,
                 max_tokens=1800,
                 messages=messages,
@@ -155,11 +155,7 @@ Choose EXACTLY ONE category from this list:
             )
 
             msg = response.choices[0].message
-            data = (
-                msg.parsed
-                if hasattr(msg, "parsed") and msg.parsed
-                else json.loads(msg.content)
-            )
+            data = json.loads(msg.content)
 
             return {
                 "title": data["title"].strip(),
@@ -175,18 +171,31 @@ Choose EXACTLY ONE category from this list:
 
         # ── 3️⃣ Gemini ─────────────────────────────────────────────
         try:
+            # Fixing the 'unexpected keyword argument' error
+            # 1. Use 'config' instead of 'generation_config'
+            # 2. Use 'system_instruction' inside config for cleaner steering
             response = gemini_client.models.generate_content(
                 model=GEMINI_MODEL,
-                contents=[
-                    types.Content(
-                        role="system", parts=[types.Part(text=system_message)]
-                    ),
-                    types.Content(role="user", parts=[types.Part(text=user_message)]),
-                ],
-                generation_config=types.GenerationConfig(
+                contents=user_message,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_message,
                     temperature=0.3,
                     max_output_tokens=1800,
                     response_mime_type="application/json",
+                    # Added response_schema to ensure Gemini follows your exact format
+                    response_schema={
+                        "type": "OBJECT",
+                        "properties": {
+                            "title": {"type": "STRING"},
+                            "summary": {"type": "STRING"},
+                            "body": {"type": "STRING"},
+                            "category": {
+                                "type": "STRING",
+                                "enum": ALLOWED_CATEGORIES
+                            },
+                        },
+                        "required": ["title", "summary", "body", "category"],
+                    },
                 ),
             )
 
