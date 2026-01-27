@@ -1,7 +1,7 @@
 import os
 import json
 from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError  # ← important: catch OpenAIError
+from openai import OpenAI, OpenAIError
 from constants import GPT_MODEL
 
 load_dotenv()
@@ -9,7 +9,7 @@ load_dotenv()
 # Primary client (OpenAI)
 openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-# Fallback client (xAI Grok) — same interface!
+# Fallback client (xAI Grok)
 xai_client = OpenAI(
     api_key=os.environ["XAI_API_KEY"],
     base_url="https://api.x.ai/v1",
@@ -66,6 +66,8 @@ Choose EXACTLY ONE category from this list:
             {"role": "user", "content": user_message},
         ]
 
+        openai_error = None  # ← FIX: ensure variable always exists
+
         # ── Primary attempt: OpenAI ──
         try:
             response = openai_client.chat.completions.create(
@@ -77,7 +79,7 @@ Choose EXACTLY ONE category from this list:
                     "type": "json_schema",
                     "json_schema": {
                         "name": "news_article",
-                        "strict": True,  # recommended in newer versions
+                        "strict": True,
                         "schema": {
                             "type": "object",
                             "additionalProperties": False,
@@ -108,16 +110,15 @@ Choose EXACTLY ONE category from this list:
                 "summary": data["summary"].strip(),
                 "body": data["body"].strip(),
                 "category": data["category"],
-                "provider": "openai",  # optional: for logging/analytics
+                "provider": "openai",
             }
 
         except (OpenAIError, json.JSONDecodeError, KeyError, Exception) as e:
+            openai_error = e
             print(f"OpenAI failed: {e.__class__.__name__} – falling back to Grok...")
 
-        # ── Fallback: xAI Grok ───────────────────────────────────────────────
-        # Choose model according to your needs & budget (2026 status)
-        # Good options: grok-4, grok-4-fast, grok-4-1-fast-reasoning, etc.
-        FALLBACK_MODEL = "grok-4"  # ← change to whatever you have access to
+        # ── Fallback: xAI Grok ──
+        FALLBACK_MODEL = "grok-4"
 
         try:
             response = xai_client.chat.completions.create(
@@ -127,10 +128,10 @@ Choose EXACTLY ONE category from this list:
                 messages=messages,
                 response_format={
                     "type": "json_schema",
-                    "json_schema": {  # same schema
+                    "json_schema": {
                         "name": "news_article",
                         "strict": True,
-                        "schema": {  # ← copy the same schema
+                        "schema": {
                             "type": "object",
                             "additionalProperties": False,
                             "properties": {
@@ -165,7 +166,7 @@ Choose EXACTLY ONE category from this list:
 
         except Exception as fallback_e:
             raise RuntimeError(
-                f"Both OpenAI and xAI fallback failed!\n"
-                f"OpenAI: {e}\n"
+                "Both OpenAI and xAI fallback failed!\n"
+                f"OpenAI: {openai_error}\n"
                 f"xAI:    {fallback_e}"
             )
