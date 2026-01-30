@@ -61,6 +61,7 @@ WRITING RULES:
 - NO explanations
 - Body must be between 500 and 700 words
 - Rewrite the title in your own words to make it more catchy, engaging, and reader-friendly while keeping the original meaning
+- Write the body in such a way that it looks written and not picked up from elsewhere
 
 CATEGORY RULE:
 Choose EXACTLY ONE category from this list:
