@@ -18,7 +18,11 @@ export function Navigation() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0 group">
+          <Link
+            href="/"
+            className="flex-shrink-0 group cursor-pointer"
+            onClick={() => (window.location.href = "/")}
+          >
             <div className="flex items-baseline space-x-1">
               <span className="font-display text-3xl font-black tracking-tighter italic text-primary group-hover:scale-105 transition-transform">
                 Hot
@@ -37,7 +41,7 @@ export function Navigation() {
                 "text-xs font-bold uppercase tracking-wider transition-all hover:text-primary hover:scale-105",
                 location === "/"
                   ? "text-primary border-b-2 border-primary pb-1"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
               )}
             >
               Home
@@ -55,7 +59,7 @@ export function Navigation() {
                     "text-xs font-bold uppercase tracking-wider transition-all hover:text-primary hover:scale-105",
                     active
                       ? "text-primary border-b-2 border-primary pb-1"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
                   )}
                 >
                   {category.name}
