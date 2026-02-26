@@ -7,6 +7,7 @@ on:
 
 jobs:
   ping-server:
+    if: false # Temporarily disabled
     runs-on: ubuntu-latest
 
     steps:
